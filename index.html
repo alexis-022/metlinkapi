@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Metlink Live - Full Feature High Performance</title>
+    <title>Metlink Live - Ultra Performance</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://c.webfontfree.com/c.js?f=Gentleman-Regular" type="text/javascript"></script>
@@ -11,8 +11,6 @@
             --gent-font: 'Gentleman-Regular', sans-serif;
             --brand-primary: #002A3A;
             --brand-secondary: #CDDC00;
-            --status-ok: #00b894;
-            --status-warn: #e17055;
         }
 
         body { margin: 0; padding: 0; font-family: var(--gent-font); color: #2d3436; overflow: hidden; touch-action: manipulation; }
@@ -86,7 +84,7 @@
     <div class="filter-item" onclick="toggleFilter('ferry', this)"><img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" class="filter-icon"> Ferry</div>
 </div>
 
-<div class="footer-note">Enhanced Route Matching</div>
+<div class="footer-note">Ultra-Low Latency Sync</div>
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -114,12 +112,8 @@
     map.createPane('vehiclesPane').style.zIndex = 600;
 
     let markers = {}, routeDetails = {}, currentRouteLine = null, stopMarkers = L.layerGroup().addTo(map);
-    let currentlyHighlightedRoute = null, hiddenTypes = new Set(), isDragging = false;
+    let currentlyHighlightedRoute = null, hiddenTypes = new Set();
     const OCC_MAP = { 1: "Available", 2: "Standing", 3: "Full" };
-
-    map.on('movestart', () => { isDragging = true; });
-    map.on('moveend', () => { setTimeout(() => { isDragging = false; }, 100); });
-    map.on('click', () => { if (!isDragging) clearSelection(); });
 
     window.searchRoute = async function() {
         const input = document.getElementById('routeInput');
@@ -138,7 +132,6 @@
             document.getElementById('p-route').innerText = `Route ${route.short}`;
             document.getElementById('p-desc').innerText = route.long;
 
-            // Instant Zoom to Vehicles
             const bounds = [];
             Object.values(markers).forEach(m => {
                 if (m.options.routeShortName === query) bounds.push(m.getLatLng());
@@ -153,51 +146,52 @@
     async function loadRouteVisuals(route) {
         if (currentRouteLine) map.removeLayer(currentRouteLine);
         stopMarkers.clearLayers();
+        currentRouteLine = L.featureGroup().addTo(map);
 
         try {
-            // Step 1: Fetch all trips for this route
-            const tRes = await fetch(PROXY + encodeURIComponent(`${URLS.trips}?route_id=${route.id}`));
-            const trips = await tRes.json();
-            
-            // Step 2: Extract ALL unique shape_ids to ensure both directions load
-            const shapeIds = [...new Set(trips.map(t => t.shape_id))].filter(Boolean);
+            // STEP 1: Fast fetch of Trips and Stops (Usually very fast)
+            const [trips, stops] = await Promise.all([
+                fetch(PROXY + encodeURIComponent(`${URLS.trips}?route_id=${route.id}`)).then(r => r.json()),
+                fetch(PROXY + encodeURIComponent(`${URLS.stops}?route_id=${route.id}`)).then(r => r.json())
+            ]);
 
-            // Step 3: Load shapes and stops in parallel
-            const shapePromises = shapeIds.map(sid => 
-                fetch(PROXY + encodeURIComponent(`${URLS.shapes}?shape_id=${sid}`))
-                .then(r => r.ok ? r.json() : [])
-                .catch(() => [])
-            );
-            const stopsPromise = fetch(PROXY + encodeURIComponent(`${URLS.stops}?route_id=${route.id}`))
-                .then(r => r.json())
-                .catch(() => []);
-
-            const [allShapes, stops] = await Promise.all([Promise.all(shapePromises), stopsPromise]);
-
-            currentRouteLine = L.featureGroup().addTo(map);
-
-            // Step 4: Draw every shape found
-            allShapes.forEach(shapeData => {
-                if (!shapeData.length) return;
-                const points = shapeData.sort((a,b) => a.shape_pt_sequence - b.shape_pt_sequence).map(p => [p.shape_pt_lat, p.shape_pt_lon]);
-                L.polyline(points, { color: route.bgColor, weight: 6, opacity: 0.7, lineJoin: 'round', pane: 'linePane' }).addTo(currentRouteLine);
-            });
-
-            // Step 5: Draw Stops
-            stops.forEach(stop => {
-                const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 12, stroke: false, fillOpacity: 0, pane: 'stopsPane' }).addTo(stopMarkers);
-                L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 5, fillColor: "#CDDC00", color: "#002A3A", weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane' }).addTo(stopMarkers);
+            // STEP 2: Instant Fail-safe (Draw draft line between stops while we wait)
+            if (stops.length > 1) {
+                console.log(`[Fail-safe] Instantly drawing draft line for Route ${route.short} using stop coordinates.`);
+                const stopPoints = stops.map(s => [s.stop_lat, s.stop_lon]);
+                const draftLine = L.polyline(stopPoints, { color: route.bgColor, weight: 4, opacity: 0.3, dashArray: '5, 10', pane: 'linePane' }).addTo(currentRouteLine);
                 
-                hitbox.on('click', async (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    hitbox.bindPopup(`<b>${stop.stop_name}</b><br><div id="live-${stop.stop_id}">Loading...</div>`).openPopup();
-                    const sRes = await fetch(PROXY + encodeURIComponent(`${URLS.preds}?stop_id=${stop.stop_id}`));
-                    const sData = await sRes.json();
-                    const pred = sData.arrivals.find(a => a.service_id === route.short);
-                    const el = document.getElementById(`live-${stop.stop_id}`);
-                    if (el) el.innerHTML = pred ? `<div style="background:${pred.status === 'delayed' ? 'var(--status-warn)' : 'var(--status-ok)'}; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; display:inline-block; margin-top:4px;">${pred.status.toUpperCase()}</div>` : "No live data";
+                // STEP 3: Draw Stop Hitboxes
+                stops.forEach(stop => {
+                    const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 12, stroke: false, fillOpacity: 0, pane: 'stopsPane' }).addTo(stopMarkers);
+                    L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 5, fillColor: "#CDDC00", color: "#002A3A", weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane' }).addTo(stopMarkers);
+                    
+                    hitbox.on('click', async (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        hitbox.bindPopup(`<b>${stop.stop_name}</b><br><div id="live-${stop.stop_id}">Loading...</div>`).openPopup();
+                        const sRes = await fetch(PROXY + encodeURIComponent(`${URLS.preds}?stop_id=${stop.stop_id}`));
+                        const sData = await sRes.json();
+                        const pred = sData.arrivals.find(a => a.service_id === route.short);
+                        const el = document.getElementById(`live-${stop.stop_id}`);
+                        if (el) el.innerHTML = pred ? `<div style="background:${pred.status === 'delayed' ? '#e17055' : '#00b894'}; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; display:inline-block; margin-top:4px;">${pred.status.toUpperCase()}</div>` : "No live data";
+                    });
                 });
-            });
+
+                // STEP 4: Background fetch High-Detail Shapes
+                const shapeIds = [...new Set(trips.map(t => t.shape_id))].filter(Boolean);
+                Promise.all(shapeIds.map(sid => 
+                    fetch(PROXY + encodeURIComponent(`${URLS.shapes}?shape_id=${sid}`)).then(r => r.json())
+                )).then(allShapes => {
+                    // Remove draft line once real shapes arrive
+                    currentRouteLine.removeLayer(draftLine);
+                    allShapes.forEach(shapeData => {
+                        if (!shapeData.length) return;
+                        const points = shapeData.sort((a,b) => a.shape_pt_sequence - b.shape_pt_sequence).map(p => [p.shape_pt_lat, p.shape_pt_lon]);
+                        L.polyline(points, { color: route.bgColor, weight: 6, opacity: 0.8, lineJoin: 'round', pane: 'linePane' }).addTo(currentRouteLine);
+                    });
+                    console.log(`[Success] High-detail shapes loaded and replaced draft for Route ${route.short}.`);
+                });
+            }
         } catch(e) { console.error("Asset Load Failed", e); }
     }
 
