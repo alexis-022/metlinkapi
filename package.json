@@ -1,7 +1,5 @@
 {
-  "name": "metlink-live-proxy",
+  "name": "metlink-live-map",
   "version": "1.0.0",
-  "dependencies": {
-    "node-fetch": "^3.3.1"
-  }
+  "type": "module"
 }
