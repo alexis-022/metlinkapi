@@ -37,7 +37,6 @@
         button { padding: 10px 16px; background: var(--brand-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-family: var(--gent-font); font-weight: bold; }
         .clear-btn { background: var(--brand-secondary); width: 100%; color: var(--brand-primary); border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 5px; }
 
-        /* Icon Fix: Tight 0px Gap */
         .vehicle-wrapper { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
         .vehicle-ring {
             width: 32px; height: 32px; box-sizing: border-box; background: white;
@@ -47,13 +46,11 @@
         }
         .vehicle-ring img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.05); }
 
-        /* Tooltips */
         .route-tooltip { background: transparent !important; border: none !important; box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important; font-family: var(--gent-font) !important; padding: 0 !important; border-radius: 8px !important; }
         .tooltip-inner { display: flex; align-items: center; padding: 5px 10px; border-radius: 8px; }
         .tooltip-route { font-weight: 900; font-size: 13px; }
         .tooltip-occ { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.25); text-transform: uppercase; margin-left: 8px; }
 
-        /* Legend */
         .legend-card { position: absolute; bottom: 30px; right: 20px; z-index: 1000; background: white; padding: 12px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 140px; }
         .filter-item { display: flex; align-items: center; gap: 10px; margin: 8px 0; cursor: pointer; font-size: 13px; font-weight: 600; }
         .filter-item.inactive { opacity: 0.25; }
@@ -89,7 +86,7 @@
     <div class="filter-item" onclick="toggleFilter('ferry', this)"><img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" class="filter-icon"> Ferry</div>
 </div>
 
-<div class="footer-note">Optimized GPS Sync</div>
+<div class="footer-note">Fast-Load GPS Sync</div>
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -141,36 +138,38 @@
             document.getElementById('p-route').innerText = `Route ${route.short}`;
             document.getElementById('p-desc').innerText = route.long;
 
-            // Instant Focus
+            // Instant Zoom to Vehicles
             const bounds = [];
             Object.values(markers).forEach(m => {
                 if (m.options.routeShortName === query) bounds.push(m.getLatLng());
             });
             if (bounds.length > 0) map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50], maxZoom: 15 });
 
-            // Parallel Asset Load
-            loadRouteAssets(route);
+            loadRouteVisuals(route);
         }
         refreshVisibility();
     };
 
-    async function loadRouteAssets(route) {
+    async function loadRouteVisuals(route) {
         if (currentRouteLine) map.removeLayer(currentRouteLine);
         stopMarkers.clearLayers();
 
-        // Download both shapes and stops at once
-        Promise.all([
-            fetch(PROXY + encodeURIComponent(`${URLS.shapes}?route_id=${route.id}`)).then(r => r.json()),
-            fetch(PROXY + encodeURIComponent(`${URLS.stops}?route_id=${route.id}`)).then(r => r.json())
-        ]).then(([shapes, stops]) => {
+        try {
+            // Fetch trips first to get shape_ids (More reliable than route_id in Metlink API)
+            const tRes = await fetch(PROXY + encodeURIComponent(`${URLS.trips}?route_id=${route.id}`));
+            const trips = await tRes.json();
+            const shapeIds = [...new Set(trips.map(t => t.shape_id))].filter(Boolean).slice(0, 2); // Get main directions
+
+            // Load shapes and stops in parallel
+            const shapePromises = shapeIds.map(sid => fetch(PROXY + encodeURIComponent(`${URLS.shapes}?shape_id=${sid}`)).then(r => r.json()));
+            const stopsPromise = fetch(PROXY + encodeURIComponent(`${URLS.stops}?route_id=${route.id}`)).then(r => r.json());
+
+            const [allShapes, stops] = await Promise.all([Promise.all(shapePromises), stopsPromise]);
+
             currentRouteLine = L.featureGroup().addTo(map);
-            const shapeGroups = {};
-            shapes.forEach(p => {
-                if(!shapeGroups[p.shape_id]) shapeGroups[p.shape_id] = [];
-                shapeGroups[p.shape_id].push([p.shape_pt_lat, p.shape_pt_lon]);
-            });
-            Object.values(shapeGroups).forEach(pts => {
-                L.polyline(pts, { color: route.bgColor, weight: 6, opacity: 0.7, lineJoin: 'round', pane: 'linePane' }).addTo(currentRouteLine);
+            allShapes.forEach(shapeData => {
+                const points = shapeData.sort((a,b) => a.shape_pt_sequence - b.shape_pt_sequence).map(p => [p.shape_pt_lat, p.shape_pt_lon]);
+                L.polyline(points, { color: route.bgColor, weight: 6, opacity: 0.7, lineJoin: 'round', pane: 'linePane' }).addTo(currentRouteLine);
             });
 
             stops.forEach(stop => {
@@ -187,7 +186,7 @@
                     if (el) el.innerHTML = pred ? `<div style="background:${pred.status === 'delayed' ? 'var(--status-warn)' : 'var(--status-ok)'}; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; display:inline-block; margin-top:4px;">${pred.status.toUpperCase()}</div>` : "No live data";
                 });
             });
-        });
+        } catch(e) { console.error("Asset Load Failed", e); }
     }
 
     async function fetchPositions() {
