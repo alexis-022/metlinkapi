@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Metlink Live - Smart Stop Names</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://c.webfontfree.com/c.js?f=Gentleman-Regular" type="text/javascript"></script>
     
@@ -14,45 +15,48 @@
             --status-warn: #e17055;
         }
 
-        body { margin: 0; padding: 0; font-family: var(--gent-font); color: #2d3436; overflow: hidden; }
+        body { margin: 0; padding: 0; font-family: var(--gent-font); color: #2d3436; overflow: hidden; touch-action: manipulation; }
         #map { height: 100vh; width: 100%; background: #f0f0f0; }
 
-        .ui-container { position: absolute; top: 20px; left: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; width: 280px; }
-        .card { background: white; padding: 15px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
-        .status-header { font-weight: bold; font-size: 0.9em; color: var(--brand-secondary); background: var(--brand-primary); margin: -15px -15px 10px -15px; padding: 10px 15px; border-radius: 12px 12px 0 0; }
+        /* UI Containers - Adjusted for Mobile */
+        .ui-container { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+        .card { background: white; padding: 12px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.15); pointer-events: auto; }
         
-        .search-container { position: relative; display: flex; gap: 5px; margin: 8px 0; }
-        input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: var(--gent-font); outline: none; }
-        #suggestions { position: absolute; top: 100%; left: 0; right: 45px; background: white; border: 1px solid #ddd; max-height: 150px; overflow-y: auto; z-index: 1001; display: none; border-radius: 0 0 6px 6px; }
-        .suggestion-item { padding: 8px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 13px; }
-        
-        button { padding: 8px 12px; background: var(--brand-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-family: var(--gent-font); font-weight: bold; }
-        .clear-btn { background: var(--brand-secondary); width: 100%; color: var(--brand-primary); border: none; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        @media (min-width: 600px) { .ui-container { width: 300px; right: auto; } }
 
+        .status-header { font-weight: bold; font-size: 0.9em; color: var(--brand-secondary); background: var(--brand-primary); margin: -12px -12px 10px -12px; padding: 10px 15px; border-radius: 12px 12px 0 0; text-align: center; }
+        
+        .search-container { position: relative; display: flex; gap: 5px; margin: 5px 0; }
+        input[type="text"] { flex: 1; padding: 12px; border: 2px solid #eee; border-radius: 8px; font-family: var(--gent-font); font-size: 16px; outline: none; } /* 16px prevents iOS zoom */
+        
+        #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; z-index: 1001; display: none; border-radius: 0 0 8px 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .suggestion-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 14px; }
+        
+        button { padding: 10px 15px; background: var(--brand-primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-family: var(--gent-font); font-weight: bold; font-size: 14px; }
+        .clear-btn { background: var(--brand-secondary); width: 100%; color: var(--brand-primary); border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+
+        /* Vehicle Styling */
         .vehicle-wrapper { display: flex; align-items: center; justify-content: center; }
         .vehicle-ring {
-            width: 24px; height: 24px; background: white;
-            border: 2px solid var(--route-color); border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            display: flex; align-items: center; justify-content: center; padding: 1px;
+            width: 30px; height: 30px; background: white;
+            border: 3px solid var(--route-color); border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center; padding: 2px;
         }
         .vehicle-ring img { width: 100%; height: 100%; display: block; }
 
-        .route-tooltip { border: none !important; box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important; font-family: var(--gent-font) !important; font-weight: 800 !important; font-size: 12px !important; padding: 4px 10px !important; border-radius: 6px !important; z-index: 9999 !important; }
-        .occ-text { font-size: 9px; font-weight: 900; margin-left: 8px; padding: 1px 4px; border-radius: 3px; background: rgba(255,255,255,0.25); text-transform: uppercase; }
+        .route-tooltip { border: none !important; box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important; font-family: var(--gent-font) !important; font-weight: 800 !important; font-size: 13px !important; padding: 5px 12px !important; border-radius: 8px !important; }
+        .occ-text { font-size: 10px; font-weight: 900; margin-left: 8px; padding: 2px 5px; border-radius: 4px; background: rgba(255,255,255,0.3); text-transform: uppercase; }
         
-        .stop-popup { min-width: 150px; font-family: var(--gent-font); }
-        .status-pill { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; margin-top: 4px; }
-        .status-on-time { background: var(--status-ok); color: white; }
-        .status-delayed { background: var(--status-warn); color: white; }
-        .fare-badge { background: var(--brand-primary); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 800; display: inline-block; margin-top: 5px; }
+        /* Legend - Bottom right on desktop, Bottom center on mobile */
+        .legend-card { position: absolute; bottom: 35px; right: 10px; z-index: 1000; background: white; padding: 10px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 8px; }
+        @media (max-width: 600px) { .legend-card { right: 50%; transform: translateX(50%); flex-direction: row; bottom: 40px; } .legend-text { display: none; } }
+        
+        .filter-item { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .filter-item.inactive { opacity: 0.3; grayscale: 1; }
+        .filter-icon { width: 24px; height: 24px; background: #f8f9fa; border-radius: 50%; padding: 4px; border: 1px solid #eee; }
 
-        .legend-card { position: absolute; bottom: 30px; right: 20px; z-index: 1000; background: white; padding: 12px; border-radius: 10px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 160px; }
-        .filter-item { display: flex; align-items: center; gap: 10px; margin: 6px 0; cursor: pointer; font-size: 12px; }
-        .filter-item.inactive { opacity: 0.2; }
-        .filter-icon { width: 18px; height: 18px; border: 1px solid #eee; border-radius: 50%; padding: 2px; }
-
-        .footer-note { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: 10px; color: #777; background: rgba(255,255,255,0.7); padding: 2px 10px; border-radius: 20px; pointer-events: none; }
+        .footer-note { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: 9px; color: #777; white-space: nowrap; pointer-events: none; }
 
         .leaflet-vehiclesPane-pane { pointer-events: none !important; }
         .leaflet-marker-icon { pointer-events: auto !important; }
@@ -64,22 +68,22 @@
     <div class="card">
         <div class="status-header"><span id="id-count">0</span> Vehicles Live</div>
         <div class="search-container">
-            <input type="text" id="routeInput" placeholder="Route #" autocomplete="off" oninput="handleAutocomplete()" onkeypress="if(event.key === 'Enter') searchRoute()">
+            <input type="text" id="routeInput" placeholder="Enter Route #" autocomplete="off" oninput="handleAutocomplete()" onkeypress="if(event.key === 'Enter') searchRoute()">
             <div id="suggestions"></div>
             <button onclick="searchRoute()">Go</button>
         </div>
         <button class="clear-btn" onclick="clearSelection()">Clear View</button>
     </div>
-    <div id="info-panel" class="card" style="display:none; border-left: 5px solid var(--brand-secondary);">
-        <span id="p-route" style="font-weight:800; color:var(--brand-primary);">Route --</span>
-        <p id="p-desc" style="font-size:0.85em; color:#666; margin: 5px 0 0 0;"></p>
+    <div id="info-panel" class="card" style="display:none; border-left: 6px solid var(--brand-secondary);">
+        <span id="p-route" style="font-weight:800; color:var(--brand-primary); font-size: 1.1em;">Route --</span>
+        <p id="p-desc" style="font-size:0.85em; color:#666; margin: 4px 0 0 0; line-height: 1.2;"></p>
     </div>
 </div>
 
 <div class="legend-card">
-    <div class="filter-item" onclick="toggleFilter('https://www.metlink.org.nz/assets/Icons/Bus.svg', this)"><img src="https://www.metlink.org.nz/assets/Icons/Bus.svg" class="filter-icon"> Bus</div>
-    <div class="filter-item" onclick="toggleFilter('https://www.metlink.org.nz/assets/Icons/Train.svg', this)"><img src="https://www.metlink.org.nz/assets/Icons/Train.svg" class="filter-icon"> Train</div>
-    <div class="filter-item" onclick="toggleFilter('https://www.metlink.org.nz/assets/Icons/Ferry.svg', this)"><img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" class="filter-icon"> Ferry</div>
+    <div class="filter-item" onclick="toggleFilter('bus', this)"><img src="https://www.metlink.org.nz/assets/Icons/Bus.svg" class="filter-icon"> <span class="legend-text">Bus</span></div>
+    <div class="filter-item" onclick="toggleFilter('train', this)"><img src="https://www.metlink.org.nz/assets/Icons/Train.svg" class="filter-icon"> <span class="legend-text">Train</span></div>
+    <div class="filter-item" onclick="toggleFilter('ferry', this)"><img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" class="filter-icon"> <span class="legend-text">Ferry</span></div>
 </div>
 
 <div class="footer-note">Work On: Loading Time, Made 100% by AI :(</div>
@@ -91,7 +95,6 @@
 <script src="https://unpkg.com/gtfs-realtime-pbf-js-module@1.0.0/gtfs-realtime.browser.proto.js"></script>
 
 <script>
-    // Smooth Transition Plugin
     (function(){var t=L.Marker.prototype.setLatLng;L.Marker.include({slideTo:function(e,i){var n=this;return n._slideToUntil=performance.now()+(i.duration||1e3),n._slideToFromLatLng=n.getLatLng(),n._slideToToLatLng=L.latLng(e),n._slideToDuration=i.duration||1e3,n._slideToFrame=requestAnimationFrame(function t(e){var i=performance.now(),r=(i-n._slideToUntil+n._slideToDuration)/n._slideToDuration;r>1&&(r=1),n.setLatLng([n._slideToFromLatLng.lat+(n._slideToToLatLng.lat-n._slideToFromLatLng.lat)*r,n._slideToFromLatLng.lng+(n._slideToToLatLng.lng-n._slideToFromLatLng.lng)*r]),r<1?n._slideToFrame=requestAnimationFrame(t):n.fire("moveend")}),n}})}).call(this);
 
     const PROXY = '/api/metlink?url='; 
@@ -104,42 +107,20 @@
         preds: 'https://api.opendata.metlink.org.nz/v1/stop-predictions' 
     };
     
-    const map = L.map('map', { zoomControl: false }).setView([-41.2865, 174.7762], 13);
+    const map = L.map('map', { zoomControl: false, tap: false }).setView([-41.2865, 174.7762], 13);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r.png}').addTo(map);
 
     map.createPane('linePane').style.zIndex = 400;
     map.createPane('stopsPane').style.zIndex = 500;
     map.createPane('vehiclesPane').style.zIndex = 600;
 
-    let markers = {}, routeDetails = {}, stopNameCache = {}, currentRouteLine = null, stopMarkers = L.layerGroup().addTo(map);
+    let markers = {}, routeDetails = {}, stopMarkers = L.layerGroup().addTo(map);
     let currentlyHighlightedRoute = null, hiddenTypes = new Set(), isDragging = false;
-    const OCC_MAP = { 0: "Unknown", 1: "Seats Available", 2: "Standing Room", 3: "Full" };
+    const OCC_MAP = { 0: "Unknown", 1: "Available", 2: "Standing", 3: "Full" };
 
-    // TRACK DRAGGING vs CLICKING
     map.on('movestart', () => { isDragging = true; });
     map.on('moveend', () => { setTimeout(() => { isDragging = false; }, 100); });
-    
-    // DESELECT ON BACKGROUND CLICK
-    map.on('click', (e) => { 
-        // Only clear if the click was directly on the map background, not a marker/popup
-        if (!isDragging) {
-             clearSelection();
-        } 
-    });
-
-    async function getStopName(stopId) {
-        if (!stopId || stopId === "") return "Approaching Route Start";
-        if (stopNameCache[stopId]) return stopNameCache[stopId];
-        try {
-            const res = await fetch(PROXY + encodeURIComponent(`${URLS.stops}?stop_id=${stopId}`));
-            const data = await res.json();
-            if (data?.[0]) {
-                stopNameCache[stopId] = data[0].stop_name;
-                return data[0].stop_name;
-            }
-        } catch(e) {}
-        return `Stop ${stopId}`;
-    }
+    map.on('click', () => { if (!isDragging) clearSelection(); });
 
     async function drawStops(routeId, routeShortName) {
         stopMarkers.clearLayers();
@@ -150,31 +131,21 @@
             data.forEach(stop => {
                 if(seen.has(stop.stop_id)) return;
                 seen.add(stop.stop_id);
-                stopNameCache[stop.stop_id] = stop.stop_name; 
                 
-                const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 10, stroke: false, fillOpacity: 0, pane: 'stopsPane' }).addTo(stopMarkers);
-                L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 5, fillColor: "#CDDC00", color: "#002A3A", weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane' }).addTo(stopMarkers);
+                const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 12, stroke: false, fillOpacity: 0, pane: 'stopsPane' }).addTo(stopMarkers);
+                L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 6, fillColor: "#CDDC00", color: "#002A3A", weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane' }).addTo(stopMarkers);
                 
                 hitbox.on('click', async (e) => {
-                    L.DomEvent.stopPropagation(e); // Prevent map click from clearing
-                    hitbox.bindPopup(`<div class="stop-popup"><b>${stop.stop_name}</b><br><div id="live-status-${stop.stop_id}">Loading...</div><span class="fare-badge">ZONE ${stop.zone_id || 'N/A'}</span></div>`).openPopup();
-                    const html = await getStopStatus(stop.stop_id, routeShortName);
+                    L.DomEvent.stopPropagation(e);
+                    hitbox.bindPopup(`<div class="stop-popup"><b>${stop.stop_name}</b><br><div id="live-status-${stop.stop_id}">Checking...</div><span class="fare-badge">ZONE ${stop.zone_id || 'N/A'}</span></div>`).openPopup();
+                    const res = await fetch(PROXY + encodeURIComponent(`${URLS.preds}?stop_id=${stop.stop_id}`));
+                    const predData = await res.json();
+                    const pred = predData.arrivals.find(a => a.service_id === routeShortName);
                     const el = document.getElementById(`live-status-${stop.stop_id}`);
-                    if (el) el.innerHTML = html;
+                    if (el) el.innerHTML = pred ? `<div class="status-pill ${pred.status === 'delayed' ? 'status-delayed' : 'status-on-time'}">${pred.status.toUpperCase()}</div>` : "No live data";
                 });
             });
         } catch(e) {}
-    }
-
-    async function getStopStatus(stopId, routeShortName) {
-        try {
-            const res = await fetch(PROXY + encodeURIComponent(`${URLS.preds}?stop_id=${stopId}`));
-            const data = await res.json();
-            const pred = data.arrivals.find(a => a.service_id === routeShortName);
-            if (!pred) return "No live data";
-            const statusClass = pred.status === 'delayed' ? 'status-delayed' : 'status-on-time';
-            return `<div class="status-pill ${statusClass}">${pred.status.toUpperCase()}</div>`;
-        } catch (e) { return "Unavailable"; }
     }
 
     async function drawRouteShape(routeId, color) {
@@ -190,7 +161,7 @@
                 const points = sData.sort((a,b)=>a.shape_pt_sequence-b.shape_pt_sequence).map(p => [p.shape_pt_lat, p.shape_pt_lon]);
                 L.polyline(points, { color, weight: 6, opacity: 0.7, lineJoin: 'round', pane: 'linePane' }).addTo(currentRouteLine);
             }
-            if (uniqueShapeIds.length > 0) map.fitBounds(currentRouteLine.getBounds(), { padding: [50, 50] });
+            if (uniqueShapeIds.length > 0) map.fitBounds(currentRouteLine.getBounds(), { padding: [40, 40] });
         } catch(e) {}
     }
 
@@ -209,14 +180,6 @@
         refreshVisibility();
     };
 
-    const popupBase = (id, details, stopName, occName) => `
-        <div style="font-family:var(--gent-font); min-width:140px;">
-            <b style="color:${details.bgColor}; font-size:14px;">Route ${details.short}</b><br>
-            <div style="margin:5px 0; font-size:12px;">Next: <b id="popup-stop-${id}">${stopName}</b></div>
-            <div style="font-size:10px; color:#777; border-top:1px solid #eee; padding-top:4px; margin-top:4px;">${occName}</div>
-        </div>
-    `;
-
     async function fetchPositions() {
         try {
             const response = await fetch(PROXY + encodeURIComponent(`${URLS.pos}?t=${Date.now()}`));
@@ -230,31 +193,26 @@
                 const id = String(v.vehicle.id);
                 activeIds.add(id);
                 
-                const details = routeDetails[v.trip.route_id] || { short: "??", bgColor: "#002A3A", textColor: "#fff" };
+                const details = routeDetails[v.trip.route_id] || { short: "??", bgColor: "#002A3A", textColor: "#fff", type: 'bus' };
                 const occName = OCC_MAP[v.occupancy_status || 0];
 
                 if (markers[id]) {
                     markers[id].slideTo([v.position.latitude, v.position.longitude], { duration: 7500 });
                     markers[id].options.occText = occName;
-                    markers[id].options.lastStopId = v.stop_id;
                 } else {
-                    let iconFile = 'https://www.metlink.org.nz/assets/Icons/Bus.svg';
-                    if (['HVL','KPL','JVL','MEL','WRL'].includes(details.short)) iconFile = 'https://www.metlink.org.nz/assets/Icons/Train.svg';
-                    if (details.short === 'WHF') iconFile = 'https://www.metlink.org.nz/assets/Icons/Ferry.svg';
+                    let iconUrl = 'https://www.metlink.org.nz/assets/Icons/Bus.svg';
+                    if (details.type === 'train') iconUrl = 'https://www.metlink.org.nz/assets/Icons/Train.svg';
+                    if (details.type === 'ferry') iconUrl = 'https://www.metlink.org.nz/assets/Icons/Ferry.svg';
 
                     markers[id] = L.marker([v.position.latitude, v.position.longitude], {
-                        icon: L.divIcon({ className: 'vehicle-wrapper', html: `<div class="vehicle-ring" style="--route-color: ${details.bgColor}"><img src="${iconFile}"></div>`, iconSize: [28,28], iconAnchor: [14,14] }),
-                        pane: 'vehiclesPane', iconFile, routeShortName: details.short, routeColors: { bg: details.bgColor, text: details.textColor }, occText: occName, lastStopId: v.stop_id
+                        icon: L.divIcon({ className: 'vehicle-wrapper', html: `<div class="vehicle-ring" style="--route-color: ${details.bgColor}"><img src="${iconUrl}"></div>`, iconSize: [32,32], iconAnchor: [16,16] }),
+                        pane: 'vehiclesPane', vehicleType: details.type, routeShortName: details.short, routeColors: { bg: details.bgColor, text: details.textColor }, occText: occName
                     }).addTo(map);
 
-                    markers[id].bindPopup(popupBase(id, details, "Loading...", occName));
-                    
-                    markers[id].on('click', async (e) => { 
-                        L.DomEvent.stopPropagation(e); // STOP map background click from firing
+                    markers[id].on('click', (e) => { 
+                        L.DomEvent.stopPropagation(e); 
                         document.getElementById('routeInput').value = details.short; 
                         searchRoute();
-                        const name = await getStopName(markers[id].options.lastStopId);
-                        markers[id].setPopupContent(popupBase(id, details, name, markers[id].options.occText));
                     });
                 }
                 updateLabel(markers[id]);
@@ -269,15 +227,15 @@
     function updateLabel(marker) {
         if (currentlyHighlightedRoute === marker.options.routeShortName) {
             const content = `${marker.options.routeShortName}${(marker.options.occText && marker.options.occText !== "Unknown") ? `<span class="occ-text">${marker.options.occText}</span>` : ""}`;
-            if (!marker.getTooltip()) marker.bindTooltip(content, { permanent: true, direction: 'top', className: 'route-tooltip', offset: [0,-15] }).openTooltip();
+            if (!marker.getTooltip()) marker.bindTooltip(content, { permanent: true, direction: 'top', className: 'route-tooltip', offset: [0,-18] }).openTooltip();
             else if (marker.getTooltip().getContent() !== content) marker.setTooltipContent(content);
             const el = marker.getTooltip().getElement();
             if (el) { el.style.backgroundColor = marker.options.routeColors.bg; el.style.color = marker.options.routeColors.text; }
         } else if (marker.getTooltip()) marker.unbindTooltip();
     }
 
-    window.toggleFilter = function(icon, el) {
-        hiddenTypes.has(icon) ? hiddenTypes.delete(icon) : hiddenTypes.add(icon);
+    window.toggleFilter = function(type, el) {
+        hiddenTypes.has(type) ? hiddenTypes.delete(type) : hiddenTypes.add(type);
         el.classList.toggle('inactive'); refreshVisibility();
     };
 
@@ -299,7 +257,7 @@
 
     function refreshVisibility() {
         Object.values(markers).forEach(m => {
-            const isFiltered = hiddenTypes.has(m.options.iconFile) || (currentlyHighlightedRoute && m.options.routeShortName !== currentlyHighlightedRoute);
+            const isFiltered = hiddenTypes.has(m.options.vehicleType) || (currentlyHighlightedRoute && m.options.routeShortName !== currentlyHighlightedRoute);
             if (isFiltered) { if (map.hasLayer(m)) map.removeLayer(m); }
             else { if (!map.hasLayer(m)) map.addLayer(m); updateLabel(m); }
         });
@@ -318,7 +276,12 @@
         try {
             const res = await fetch(PROXY + encodeURIComponent(URLS.routes));
             const data = await res.json();
-            data.forEach(r => { routeDetails[r.route_id] = { id: r.route_id, short: r.route_short_name, long: r.route_long_name, bgColor: r.route_color ? `#${r.route_color}` : '#002A3A', textColor: r.route_text_color ? `#${r.route_text_color}` : '#fff' }; });
+            data.forEach(r => { 
+                let type = 'bus';
+                if (['HVL','KPL','JVL','MEL','WRL'].includes(r.route_short_name)) type = 'train';
+                if (r.route_short_name === 'WHF') type = 'ferry';
+                routeDetails[r.route_id] = { id: r.route_id, short: r.route_short_name, long: r.route_long_name, type, bgColor: r.route_color ? `#${r.route_color}` : '#002A3A', textColor: r.route_text_color ? `#${r.route_text_color}` : '#fff' }; 
+            });
             fetchPositions(); setInterval(fetchPositions, 8000); 
         } catch(e) {}
     }
