@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Metlink Live - Ultra Performance Fix</title>
+    <title>Metlink Live - Performance Core</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://c.webfontfree.com/c.js?f=Gentleman-Regular" type="text/javascript"></script>
@@ -14,41 +14,28 @@
         }
 
         body { margin: 0; padding: 0; font-family: var(--gent-font); color: #2d3436; overflow: hidden; touch-action: manipulation; }
-        
-        /* Fixed Cursor */
-        #map { height: 100vh; width: 100%; background: #f0f0f0; cursor: default !important; }
-        .leaflet-container { cursor: default !important; }
-        .leaflet-interactive { cursor: pointer !important; }
+        #map { height: 100vh; width: 100%; background: #f0f0f0; cursor: default; }
 
+        /* Map UI */
         .ui-container { position: absolute; top: 20px; left: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; width: 300px; }
-        
-        @media (max-width: 480px) {
-            .ui-container { top: 10px; left: 10px; right: 10px; width: auto; }
-            .legend-card { display: none !important; }
-        }
-
         .card { background: white; padding: 15px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
         .status-header { font-weight: bold; font-size: 0.9em; color: var(--brand-secondary); background: var(--brand-primary); margin: -15px -15px 10px -15px; padding: 12px 15px; border-radius: 12px 12px 0 0; text-align: center; }
         
         .search-container { position: relative; display: flex; gap: 8px; margin: 8px 0; }
         input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: var(--gent-font); outline: none; font-size: 16px; width: 100%; }
-        
         #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; z-index: 1001; display: none; border-radius: 0 0 6px 6px; }
         .suggestion-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 14px; }
         
         button { padding: 10px 16px; background: var(--brand-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-family: var(--gent-font); font-weight: bold; }
         .clear-btn { background: var(--brand-secondary); width: 100%; color: var(--brand-primary); border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 5px; }
 
+        /* Markers */
         .vehicle-wrapper { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
-        .vehicle-ring {
-            width: 32px; height: 32px; box-sizing: border-box; background: white;
-            border: 3px solid var(--route-color); border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2); transform: translateZ(0);
-        }
-        .vehicle-ring img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.05); }
+        .vehicle-ring { width: 32px; height: 32px; box-sizing: border-box; background: white; border: 3px solid var(--route-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .vehicle-ring img { width: 100%; height: 100%; object-fit: cover; }
 
-        .route-tooltip { background: transparent !important; border: none !important; box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important; font-family: var(--gent-font) !important; padding: 0 !important; border-radius: 8px !important; }
+        /* Labels */
+        .route-tooltip { background: transparent !important; border: none !important; box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important; padding: 0 !important; border-radius: 8px !important; }
         .tooltip-inner { display: flex; align-items: center; padding: 5px 10px; border-radius: 8px; }
         .tooltip-route { font-weight: 900; font-size: 13px; }
         .tooltip-occ { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.25); text-transform: uppercase; margin-left: 8px; }
@@ -56,12 +43,11 @@
         .legend-card { position: absolute; bottom: 30px; right: 20px; z-index: 1000; background: white; padding: 12px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 140px; }
         .filter-item { display: flex; align-items: center; gap: 10px; margin: 8px 0; cursor: pointer; font-size: 13px; font-weight: 600; }
         .filter-item.inactive { opacity: 0.25; }
-        .filter-icon { width: 20px; height: 20px; object-fit: contain; }
 
-        .footer-note { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: 10px; color: #777; background: rgba(255,255,255,0.8); padding: 3px 12px; border-radius: 20px; pointer-events: none; border: 1px solid #eee; }
-
-        .leaflet-vehiclesPane-pane { pointer-events: none !important; }
-        .leaflet-marker-icon { pointer-events: auto !important; }
+        @media (max-width: 480px) {
+            .ui-container { top: 10px; left: 10px; right: 10px; width: auto; }
+            .legend-card { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -83,12 +69,11 @@
 </div>
 
 <div class="legend-card">
-    <div class="filter-item" onclick="toggleFilter('bus', this)"><img src="https://www.metlink.org.nz/assets/Icons/Bus.svg" class="filter-icon"> Bus</div>
-    <div class="filter-item" onclick="toggleFilter('train', this)"><img src="https://www.metlink.org.nz/assets/Icons/Train.svg" class="filter-icon"> Train</div>
-    <div class="filter-item" onclick="toggleFilter('ferry', this)"><img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" class="filter-icon"> Ferry</div>
+    <div class="filter-item" onclick="toggleFilter('bus', this)"><img src="https://www.metlink.org.nz/assets/Icons/Bus.svg" width="20"> Bus</div>
+    <div class="filter-item" onclick="toggleFilter('train', this)"><img src="https://www.metlink.org.nz/assets/Icons/Train.svg" width="20"> Train</div>
+    <div class="filter-item" onclick="toggleFilter('ferry', this)"><img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" width="20"> Ferry</div>
 </div>
 
-<div class="footer-note">Ultra-Low Latency Sync</div>
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -119,9 +104,9 @@
     let currentlyHighlightedRoute = null, hiddenTypes = new Set();
     const OCC_MAP = { 1: "Available", 2: "Standing", 3: "Full" };
 
-    // FIXED: Reliable click-off detection
+    // CLEAN CLICK-OFF: Clicking map background clears route
     map.on('click', function(e) {
-        if (e.originalEvent && e.originalEvent.target.id === 'map') {
+        if (currentlyHighlightedRoute) {
             clearSelection();
         }
     });
@@ -134,20 +119,18 @@
         input.blur();
         input.value = "";
         currentlyHighlightedRoute = query;
+        document.getElementById('map').style.cursor = 'pointer';
 
         const route = Object.values(routeDetails).find(r => r.short === query);
         if (route) {
-            const info = document.getElementById('info-panel');
-            info.style.display = 'block';
-            info.style.borderLeftColor = route.bgColor;
+            document.getElementById('info-panel').style.display = 'block';
+            document.getElementById('info-panel').style.borderLeftColor = route.bgColor;
             document.getElementById('p-route').innerText = `Route ${route.short}`;
             document.getElementById('p-desc').innerText = route.long;
 
-            const bounds = [];
-            Object.values(markers).forEach(m => {
-                if (m.options.routeShortName === query) bounds.push(m.getLatLng());
-            });
-            if (bounds.length > 0) map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50], maxZoom: 15 });
+            const b = [];
+            Object.values(markers).forEach(m => { if (m.options.routeShortName === query) b.push(m.getLatLng()); });
+            if (b.length > 0) map.fitBounds(L.latLngBounds(b), { padding: [50, 50], maxZoom: 15 });
 
             loadRouteVisuals(route);
         }
@@ -165,7 +148,6 @@
                 fetch(PROXY + encodeURIComponent(`${URLS.stops}?route_id=${route.id}`)).then(r => r.json())
             ]);
 
-            // Draw Stop Hitboxes
             stops.forEach(stop => {
                 const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 12, stroke: false, fillOpacity: 0, pane: 'stopsPane' }).addTo(stopMarkers);
                 L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 5, fillColor: "#CDDC00", color: "#002A3A", weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane' }).addTo(stopMarkers);
@@ -181,17 +163,15 @@
                 });
             });
 
-            // Draw High-Detail Shapes
-            const shapeIds = [...new Set(trips.map(t => t.shape_id))].filter(Boolean);
-            shapeIds.forEach(async (sid) => {
+            const sids = [...new Set(trips.map(t => t.shape_id))].filter(Boolean);
+            sids.forEach(async (sid) => {
                 const res = await fetch(PROXY + encodeURIComponent(`${URLS.shapes}?shape_id=${sid}`));
                 const shapeData = await res.json();
                 if (!shapeData.length) return;
                 const points = shapeData.sort((a,b) => a.shape_pt_sequence - b.shape_pt_sequence).map(p => [p.shape_pt_lat, p.shape_pt_lon]);
-                L.polyline(points, { color: route.bgColor, weight: 6, opacity: 0.8, lineJoin: 'round', pane: 'linePane' }).addTo(currentRouteLine);
+                L.polyline(points, { color: route.bgColor, weight: 6, opacity: 0.8, pane: 'linePane' }).addTo(currentRouteLine);
             });
-
-        } catch(e) { console.error("Asset Load Failed", e); }
+        } catch(e) {}
     }
 
     async function fetchPositions() {
@@ -204,7 +184,7 @@
             feed.entity.forEach(entity => {
                 const v = entity.vehicle; if (!v) return;
                 const id = String(v.vehicle.id); activeIds.add(id);
-                const rd = routeDetails[v.trip.route_id] || { short: "?", bgColor: "#002A3A", textColor: "#fff", type: 'bus' };
+                const rd = routeDetails[v.trip.route_id] || { short: "?", bgColor: "#002A3A", type: 'bus' };
                 const occText = OCC_MAP[v.occupancy_status];
 
                 if (markers[id]) {
@@ -216,12 +196,8 @@
                     if (rd.type === 'ferry') iconUrl = 'https://www.metlink.org.nz/assets/Icons/Ferry.svg';
 
                     markers[id] = L.marker([v.position.latitude, v.position.longitude], {
-                        icon: L.divIcon({ 
-                            className: 'vehicle-wrapper', 
-                            html: `<div class="vehicle-ring" style="--route-color: ${rd.bgColor}"><img src="${iconUrl}"></div>`, 
-                            iconSize: [32,32], iconAnchor: [16,16] 
-                        }),
-                        pane: 'vehiclesPane', vehicleType: rd.type, routeShortName: rd.short, routeColors: { bg: rd.bgColor, text: rd.textColor }, occText: occText
+                        icon: L.divIcon({ className: 'vehicle-wrapper', html: `<div class="vehicle-ring" style="--route-color: ${rd.bgColor}"><img src="${iconUrl}"></div>`, iconSize: [32,32] }),
+                        pane: 'vehiclesPane', vehicleType: rd.type, routeShortName: rd.short, routeColors: { bg: rd.bgColor, text: rd.textColor || '#fff' }, occText: occText
                     }).addTo(map);
 
                     markers[id].on('click', (e) => { 
@@ -240,17 +216,14 @@
 
     function updateLabel(marker) {
         if (currentlyHighlightedRoute === marker.options.routeShortName) {
-            const occHtml = marker.options.occText ? `<span class="tooltip-occ">${marker.options.occText}</span>` : "";
-            const content = `<div class="tooltip-inner" style="background:${marker.options.routeColors.bg}; color:${marker.options.routeColors.text}"><span class="tooltip-route">${marker.options.routeShortName}</span>${occHtml}</div>`;
+            const occ = marker.options.occText ? `<span class="tooltip-occ">${marker.options.occText}</span>` : "";
+            const content = `<div class="tooltip-inner" style="background:${marker.options.routeColors.bg}; color:${marker.options.routeColors.text}"><span class="tooltip-route">${marker.options.routeShortName}</span>${occ}</div>`;
             if (!marker.getTooltip()) marker.bindTooltip(content, { permanent: true, direction: 'top', className: 'route-tooltip', offset: [0,-18] }).openTooltip();
             else if (marker.getTooltip().getContent() !== content) marker.setTooltipContent(content);
         } else if (marker.getTooltip()) marker.unbindTooltip();
     }
 
-    window.toggleFilter = function(type, el) {
-        hiddenTypes.has(type) ? hiddenTypes.delete(type) : hiddenTypes.add(type);
-        el.classList.toggle('inactive'); refreshVisibility();
-    };
+    window.toggleFilter = function(t, el) { hiddenTypes.has(t) ? hiddenTypes.delete(t) : hiddenTypes.add(t); el.classList.toggle('inactive'); refreshVisibility(); };
 
     window.handleAutocomplete = function() {
         const val = document.getElementById('routeInput').value.trim().toUpperCase();
@@ -260,7 +233,7 @@
         if (matches.length > 0) {
             suggs.innerHTML = matches.map(m => `<div class="suggestion-item" onclick="selectSugg('${m.short}')">${m.short} - ${m.long}</div>`).join('');
             suggs.style.display = 'block';
-        } else { suggs.style.display = 'none'; }
+        } else suggs.style.display = 'none';
     };
 
     window.selectSugg = (s) => { document.getElementById('routeInput').value = s; searchRoute(); document.getElementById('suggestions').style.display = 'none'; };
@@ -277,23 +250,22 @@
         if (currentRouteLine) map.removeLayer(currentRouteLine);
         stopMarkers.clearLayers();
         currentlyHighlightedRoute = null;
+        document.getElementById('map').style.cursor = 'default';
         document.getElementById('routeInput').value = "";
         document.getElementById('info-panel').style.display = 'none';
         refreshVisibility();
     };
 
     async function init() { 
-        try {
-            const res = await fetch(PROXY + encodeURIComponent(URLS.routes));
-            const data = await res.json();
-            data.forEach(r => { 
-                let type = 'bus';
-                if (['HVL','KPL','JVL','MEL','WRL'].includes(r.route_short_name)) type = 'train';
-                if (r.route_short_name === 'WHF') type = 'ferry';
-                routeDetails[r.route_id] = { id: r.route_id, short: r.route_short_name, long: r.route_long_name, type, bgColor: r.route_color ? `#${r.route_color}` : '#002A3A', textColor: r.route_text_color ? `#${r.route_text_color}` : '#fff' }; 
-            });
-            fetchPositions(); setInterval(fetchPositions, 8000); 
-        } catch(e) {}
+        const res = await fetch(PROXY + encodeURIComponent(URLS.routes));
+        const data = await res.json();
+        data.forEach(r => { 
+            let type = 'bus';
+            if (['HVL','KPL','JVL','MEL','WRL'].includes(r.route_short_name)) type = 'train';
+            if (r.route_short_name === 'WHF') type = 'ferry';
+            routeDetails[r.route_id] = { id: r.route_id, short: r.route_short_name, long: r.route_long_name, type, bgColor: r.route_color ? `#${r.route_color}` : '#002A3A', textColor: r.route_text_color ? `#${r.route_text_color}` : '#fff' }; 
+        });
+        fetchPositions(); setInterval(fetchPositions, 8000); 
     }
     init();
 </script>
