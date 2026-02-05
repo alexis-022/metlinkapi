@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Metlink Live - Ultra Performance</title>
+    <title>Metlink API</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://c.webfontfree.com/c.js?f=Gentleman-Regular" type="text/javascript"></script>
@@ -54,7 +54,7 @@
         .filter-item.inactive { opacity: 0.25; }
         .filter-icon { width: 20px; height: 20px; object-fit: contain; }
 
-        .footer-note { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: 10px; color: #777; background: rgba(255,255,255,0.8); padding: 3px 12px; border-radius: 20px; pointer-events: none; border: 1px solid #eee; }
+        .footer-note { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: 10px; color: #777; background: rgba(255,255,255,0.8); padding: 3px 12px; border-radius: 20px; pointer-events: none; border: 1px solid #eee; white-space: nowrap; }
 
         .leaflet-vehiclesPane-pane { pointer-events: none !important; }
         .leaflet-marker-icon { pointer-events: auto !important; }
@@ -86,7 +86,7 @@
     <div class="filter-item" onclick="toggleFilter('ferry', this)"><img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" class="filter-icon"> Ferry</div>
 </div>
 
-<div class="footer-note">Ultra-Low Latency Sync</div>
+<div class="footer-note">100% AI - But a lot of prompt writing</div>
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -116,7 +116,6 @@
     let currentlyHighlightedRoute = null, hiddenTypes = new Set();
     const OCC_MAP = { 1: "Available", 2: "Standing", 3: "Full" };
 
-    // CLICK-OFF Logic
     map.on('click', (e) => { if(currentlyHighlightedRoute) clearSelection(); });
 
     window.searchRoute = async function() {
@@ -158,7 +157,6 @@
                 fetch(PROXY + encodeURIComponent(`${URLS.stops}?route_id=${route.id}`)).then(r => r.json())
             ]);
 
-            // STOPS with FARE ZONES
             stops.forEach(stop => {
                 const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 12, stroke: false, fillOpacity: 0, pane: 'stopsPane' }).addTo(stopMarkers);
                 L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 5, fillColor: "#CDDC00", color: "#002A3A", weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane' }).addTo(stopMarkers);
@@ -170,7 +168,6 @@
                 });
             });
 
-            // ROBUST SHAPE LOADING (Fix for JVL/Complex Routes)
             const shapeIds = [...new Set(trips.map(t => t.shape_id))].filter(Boolean);
             shapeIds.forEach(async (sid) => {
                 try {
