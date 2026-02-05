@@ -35,11 +35,11 @@
             border: 2px solid var(--route-color); border-radius: 50%;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             display: flex; align-items: center; justify-content: center; padding: 1px;
+            pointer-events: auto !important; /* Fix for clicking */
         }
-        .vehicle-ring img { width: 100%; height: 100%; display: block; }
+        .vehicle-ring img { width: 100%; height: 100%; display: block; pointer-events: none; }
 
         .route-tooltip { border: none !important; box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important; font-family: var(--gent-font) !important; font-weight: 800 !important; font-size: 12px !important; padding: 4px 10px !important; border-radius: 6px !important; z-index: 9999 !important; }
-        .occ-text { font-size: 9px; font-weight: 900; margin-left: 8px; padding: 1px 4px; border-radius: 3px; background: rgba(255,255,255,0.25); text-transform: uppercase; }
         
         .stop-popup { min-width: 150px; font-family: var(--gent-font); }
         .status-pill { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; margin-top: 4px; }
@@ -87,7 +87,6 @@
     // Leaflet Marker Slide Plugin
     (function(){var t=L.Marker.prototype.setLatLng;L.Marker.include({slideTo:function(e,i){var n=this;return n._slideToUntil=performance.now()+(i.duration||1e3),n._slideToFromLatLng=n.getLatLng(),n._slideToToLatLng=L.latLng(e),n._slideToDuration=i.duration||1e3,n._slideToFrame=requestAnimationFrame(function t(e){var i=performance.now(),r=(i-n._slideToUntil+n._slideToDuration)/n._slideToDuration;r>1&&(r=1),n.setLatLng([n._slideToFromLatLng.lat+(n._slideToToLatLng.lat-n._slideToFromLatLng.lat)*r,n._slideToFromLatLng.lng+(n._slideToToLatLng.lng-n._slideToFromLatLng.lng)*r]),r<1?n._slideToFrame=requestAnimationFrame(t):n.fire("moveend")}),n}})}).call(this);
 
-    // Vercel Proxy Path
     const PROXY = '/api/metlink?url='; 
     const URLS = { 
         pos: 'https://api.opendata.metlink.org.nz/v1/gtfs-rt/vehiclepositions', 
@@ -103,7 +102,9 @@
 
     map.createPane('linePane').style.zIndex = 400;
     map.createPane('stopsPane').style.zIndex = 500;
-    map.createPane('vehiclesPane').style.zIndex = 600;
+    const vPane = map.createPane('vehiclesPane');
+    vPane.style.zIndex = 600;
+    vPane.style.pointerEvents = 'none'; // Pane is click-through, markers are not.
 
     let markers = {}, routeDetails = {}, stopNameCache = {}, currentRouteLine = null, stopMarkers = L.layerGroup().addTo(map);
     let currentlyHighlightedRoute = null, hiddenTypes = new Set(), isDragging = false;
@@ -192,47 +193,64 @@
         refreshVisibility();
     };
 
-async function fetchPositions() {
-    try {
-        const response = await fetch(PROXY + encodeURIComponent(`${URLS.pos}?t=${Date.now()}`));
-        const base64String = await response.text();
-        
-        // Convert Base64 string back to a binary Uint8Array
-        const binaryString = window.atob(base64String);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-        }
-
-        // Now parse the clean binary data
-        const feed = FeedMessage.read(new Pbf(bytes));
-        console.log(`Success! Decoded ${feed.entity.length} vehicles.`);
-        
-        const activeIds = new Set();
-        for (const entity of feed.entity) {
-            const v = entity.vehicle; if (!v) continue;
-            const id = String(v.vehicle.id);
-            const details = routeDetails[v.trip.route_id] || { short: "??", bgColor: "#002A3A", textColor: "#fff" };
-            activeIds.add(id);
-            
-            // ... (The rest of your marker logic is the same) ...
-            if (markers[id]) {
-                markers[id].slideTo([v.position.latitude, v.position.longitude], { duration: 4500 });
-            } else {
-                markers[id] = L.marker([v.position.latitude, v.position.longitude], {
-                    icon: L.divIcon({ 
-                        className: 'vehicle-wrapper', 
-                        html: `<div class="vehicle-ring" style="--route-color: ${details.bgColor}"><img src="https://www.metlink.org.nz/assets/Icons/Bus.svg"></div>`, 
-                        iconSize: [28,28], iconAnchor: [14,14] 
-                    })
-                }).addTo(map);
+    async function fetchPositions() {
+        try {
+            const response = await fetch(PROXY + encodeURIComponent(`${URLS.pos}?t=${Date.now()}`));
+            const base64String = await response.text();
+            const binaryString = window.atob(base64String);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
             }
-        }
-        document.getElementById('id-count').innerText = activeIds.size;
-    } catch(e) {
-        console.error("Base64/Protobuf Error:", e);
+
+            const feed = FeedMessage.read(new Pbf(bytes));
+            console.log(`Update: ${feed.entity.length} vehicles.`);
+            
+            const activeIds = new Set();
+            for (const entity of feed.entity) {
+                const v = entity.vehicle; if (!v) continue;
+                const id = String(v.vehicle.id);
+                const details = routeDetails[v.trip.route_id] || { short: "??", bgColor: "#002A3A", textColor: "#fff" };
+                activeIds.add(id);
+                
+                let iconUrl = 'https://www.metlink.org.nz/assets/Icons/Bus.svg';
+                if (['HVL','KPL','JVL','MEL','WRL'].includes(details.short)) iconUrl = 'https://www.metlink.org.nz/assets/Icons/Train.svg';
+                if (details.short === 'CCL') iconUrl = 'https://www.metlink.org.nz/assets/Icons/Cable-Car.svg';
+                if (details.short === 'WHF') iconUrl = 'https://www.metlink.org.nz/assets/Icons/Ferry.svg';
+                
+                const occName = OCC_MAP[v.occupancy_status || 0];
+                const popupBase = (stopName) => `<div style="font-family:var(--gent-font); min-width:140px;"><b>Route ${details.short}</b><br>Next: ${stopName}<br><small>${occName}</small></div>`;
+
+                if (markers[id]) {
+                    markers[id].slideTo([v.position.latitude, v.position.longitude], { duration: 4500 });
+                } else {
+                    markers[id] = L.marker([v.position.latitude, v.position.longitude], {
+                        icon: L.divIcon({ 
+                            className: 'vehicle-wrapper', 
+                            html: `<div class="vehicle-ring" style="--route-color: ${details.bgColor}"><img src="${iconUrl}"></div>`, 
+                            iconSize: [28,28], iconAnchor: [14,14] 
+                        }),
+                        pane: 'vehiclesPane', 
+                        iconFile: iconUrl, 
+                        routeShortName: details.short, 
+                        routeColors: { bg: details.bgColor, text: details.textColor },
+                        interactive: true 
+                    }).addTo(map).bindPopup(popupBase("Loading..."));
+                    
+                    markers[id].on('click', async () => {
+                        const name = await getStopName(v.stop_id);
+                        markers[id].setPopupContent(popupBase(name));
+                    });
+                }
+                updateLabel(markers[id]);
+            }
+
+            Object.keys(markers).forEach(mid => { if (!activeIds.has(mid)) { map.removeLayer(markers[mid]); delete markers[mid]; } });
+            refreshVisibility();
+            document.getElementById('id-count').innerText = activeIds.size;
+        } catch(e) { console.error("Update Error:", e); }
     }
-}
+
     function updateLabel(marker) {
         if (currentlyHighlightedRoute === marker.options.routeShortName) {
             const content = `${marker.options.routeShortName}`;
