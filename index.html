@@ -72,9 +72,9 @@
 </div>
 
 <div class="legend-card">
-    <div class="filter-item" onclick="toggleFilter('bus.svg', this)"><img src="icons/bus.svg" class="filter-icon"> Bus</div>
-    <div class="filter-item" onclick="toggleFilter('train.svg', this)"><img src="icons/train.svg" class="filter-icon"> Train</div>
-    <div class="filter-item" onclick="toggleFilter('ferry.svg', this)"><img src="icons/ferry.svg" class="filter-icon"> Ferry</div>
+    <div class="filter-item" onclick="toggleFilter('https://www.metlink.org.nz/assets/Icons/Bus.svg', this)"><img src="https://www.metlink.org.nz/assets/Icons/Bus.svg" class="filter-icon"> Bus</div>
+    <div class="filter-item" onclick="toggleFilter('https://www.metlink.org.nz/assets/Icons/Train.svg', this)"><img src="https://www.metlink.org.nz/assets/Icons/Train.svg" class="filter-icon"> Train</div>
+    <div class="filter-item" onclick="toggleFilter('https://www.metlink.org.nz/assets/Icons/Ferry.svg', this)"><img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" class="filter-icon"> Ferry</div>
 </div>
 
 <div id="map"></div>
@@ -87,6 +87,8 @@
     // Leaflet Marker Slide Plugin
     (function(){var t=L.Marker.prototype.setLatLng;L.Marker.include({slideTo:function(e,i){var n=this;return n._slideToUntil=performance.now()+(i.duration||1e3),n._slideToFromLatLng=n.getLatLng(),n._slideToToLatLng=L.latLng(e),n._slideToDuration=i.duration||1e3,n._slideToFrame=requestAnimationFrame(function t(e){var i=performance.now(),r=(i-n._slideToUntil+n._slideToDuration)/n._slideToDuration;r>1&&(r=1),n.setLatLng([n._slideToFromLatLng.lat+(n._slideToToLatLng.lat-n._slideToFromLatLng.lat)*r,n._slideToFromLatLng.lng+(n._slideToToLatLng.lng-n._slideToFromLatLng.lng)*r]),r<1?n._slideToFrame=requestAnimationFrame(t):n.fire("moveend")}),n}})}).call(this);
 
+    const API_KEY = 'dItDXPZfr0aeK9f8McupL3E4JiwkC8M3d1fj1ZZc';
+    const PROXY = 'https://api.allorigins.win/raw?url='; 
     const URLS = { 
         pos: 'https://api.opendata.metlink.org.nz/v1/gtfs-rt/vehiclepositions', 
         routes: 'https://api.opendata.metlink.org.nz/v1/gtfs/routes', 
@@ -107,14 +109,6 @@
     let currentlyHighlightedRoute = null, hiddenTypes = new Set(), isDragging = false;
     const OCC_MAP = { 0: "Unknown", 1: "Seats Available", 2: "Standing Room", 3: "Full" };
 
-    // SHARED FETCH LOGIC: Points to your internal Vercel proxy
-    async function safeFetch(metlinkUrl, isBinary = false) {
-        const proxyUrl = `/api/metlink?url=${encodeURIComponent(metlinkUrl)}`;
-        const res = await fetch(proxyUrl);
-        if (!res.ok) throw new Error("Connection failed");
-        return isBinary ? await res.arrayBuffer() : await res.json();
-    }
-
     map.on('movestart', () => { isDragging = true; });
     map.on('moveend', () => { setTimeout(() => { isDragging = false; }, 100); });
     map.on('click', (e) => { 
@@ -124,8 +118,11 @@
     async function getStopName(stopId) {
         if (!stopId || stopId === "") return "Approaching Route Start";
         if (stopNameCache[stopId]) return stopNameCache[stopId];
+        
         try {
-            const data = await safeFetch(`${URLS.stops}?stop_id=${stopId}`);
+            const res = await fetch(PROXY + encodeURIComponent(`${URLS.stops}?stop_id=${stopId}`), { headers: { 'x-api-key': API_KEY } });
+            if (!res.ok) return `Stop ${stopId}`;
+            const data = await res.json();
             if (data && data.length > 0) {
                 stopNameCache[stopId] = data[0].stop_name;
                 return data[0].stop_name;
@@ -137,7 +134,8 @@
     async function drawStops(routeId, routeShortName) {
         stopMarkers.clearLayers();
         try {
-            const data = await safeFetch(`${URLS.stops}?route_id=${routeId}`);
+            const res = await fetch(PROXY + encodeURIComponent(`${URLS.stops}?route_id=${routeId}`), { headers: { 'x-api-key': API_KEY } });
+            const data = await res.json();
             const seen = new Set();
             data.forEach(stop => {
                 stopNameCache[stop.stop_id] = stop.stop_name; 
@@ -159,7 +157,9 @@
     async function getStopStatus(stopId, routeShortName) {
         if (!stopId || stopId === "") return "Data unavailable";
         try {
-            const data = await safeFetch(`${URLS.preds}?stop_id=${stopId}`);
+            const res = await fetch(PROXY + encodeURIComponent(`${URLS.preds}?stop_id=${stopId}`), { headers: { 'x-api-key': API_KEY } });
+            if (!res.ok) return "Service busy";
+            const data = await res.json();
             const pred = data.arrivals.find(a => a.service_id === routeShortName);
             if (!pred) return "No live data";
             const statusClass = pred.status === 'delayed' ? 'status-delayed' : 'status-on-time';
@@ -171,12 +171,14 @@
 
     async function drawRouteShape(routeId, color) {
         try {
-            const trips = await safeFetch(`${URLS.trips}?route_id=${routeId}`);
+            const tRes = await fetch(PROXY + encodeURIComponent(`${URLS.trips}?route_id=${routeId}`), { headers: { 'x-api-key': API_KEY } });
+            const trips = await tRes.json();
             const uniqueShapeIds = [...new Set(trips.map(t => t.shape_id))].filter(s => s);
             if (currentRouteLine) map.removeLayer(currentRouteLine);
             currentRouteLine = L.featureGroup().addTo(map);
             for (const shapeId of uniqueShapeIds) {
-                const sData = await safeFetch(`${URLS.shapes}?shape_id=${encodeURIComponent(shapeId)}`);
+                const sRes = await fetch(PROXY + encodeURIComponent(`${URLS.shapes}?shape_id=${encodeURIComponent(shapeId)}`), { headers: { 'x-api-key': API_KEY } });
+                const sData = await sRes.json();
                 const points = sData.sort((a,b)=>a.shape_pt_sequence-b.shape_pt_sequence).map(p => [p.shape_pt_lat, p.shape_pt_lon]);
                 L.polyline(points, { color, weight: 6, opacity: 0.7, lineJoin: 'round', pane: 'linePane' }).addTo(currentRouteLine);
             }
@@ -201,7 +203,8 @@
 
     async function fetchPositions() {
         try {
-            const buffer = await safeFetch(`${URLS.pos}?t=${Date.now()}`, true);
+            const response = await fetch(PROXY + encodeURIComponent(`${URLS.pos}?t=${Date.now()}`), { headers: { 'x-api-key': API_KEY, 'Accept': 'application/x-protobuf' } });
+            const buffer = await response.arrayBuffer();
             const feed = FeedMessage.read(new Pbf(new Uint8Array(buffer)));
             const activeIds = new Set();
             
@@ -211,10 +214,13 @@
                 const details = routeDetails[v.trip.route_id] || { short: "??", bgColor: "#002A3A", textColor: "#fff" };
                 activeIds.add(id);
                 
-                let iconFile = 'bus.svg';
-                if (['HVL','KPL','JVL','MEL','WRL'].includes(details.short)) iconFile = 'train.svg';
+                let iconUrl = 'https://www.metlink.org.nz/assets/Icons/Bus.svg';
+                if (['HVL','KPL','JVL','MEL','WRL'].includes(details.short)) iconUrl = 'https://www.metlink.org.nz/assets/Icons/Train.svg';
+                if (details.short === 'CCL') iconUrl = 'https://www.metlink.org.nz/assets/Icons/Cable-Car.svg';
+                if (details.short === 'WHF') iconUrl = 'https://www.metlink.org.nz/assets/Icons/Ferry.svg';
                 
                 const occName = OCC_MAP[v.occupancy_status || 0];
+                
                 const popupBase = (stopName) => `
                     <div style="font-family:var(--gent-font); min-width:140px;">
                         <b style="color:${details.bgColor}; font-size:14px;">Route ${details.short}</b><br>
@@ -232,8 +238,8 @@
                     });
                 } else {
                     markers[id] = L.marker([v.position.latitude, v.position.longitude], {
-                        icon: L.divIcon({ className: 'vehicle-wrapper', html: `<div class="vehicle-ring" style="--route-color: ${details.bgColor}"><img src="icons/${iconFile}"></div>`, iconSize: [28,28], iconAnchor: [14,14] }),
-                        pane: 'vehiclesPane', iconFile, routeShortName: details.short, routeColors: { bg: details.bgColor, text: details.textColor }, occText: occName
+                        icon: L.divIcon({ className: 'vehicle-wrapper', html: `<div class="vehicle-ring" style="--route-color: ${details.bgColor}"><img src="${iconUrl}"></div>`, iconSize: [28,28], iconAnchor: [14,14] }),
+                        pane: 'vehiclesPane', iconFile: iconUrl, routeShortName: details.short, routeColors: { bg: details.bgColor, text: details.textColor }, occText: occName
                     }).bindPopup(popupBase("Loading stop...")).on('click', async (e) => { 
                         L.DomEvent.stopPropagation(e); 
                         document.getElementById('routeInput').value = details.short; 
@@ -300,9 +306,11 @@
 
     async function init() { 
         try {
-            const data = await safeFetch(URLS.routes);
+            const res = await fetch(PROXY + encodeURIComponent(URLS.routes), { headers: { 'x-api-key': API_KEY } });
+            if (!res.ok) throw new Error("API Connection Failed");
+            const data = await res.json();
             data.forEach(r => { routeDetails[r.route_id] = { id: r.route_id, short: r.route_short_name, long: r.route_long_name, bgColor: r.route_color ? `#${r.route_color}` : '#002A3A', textColor: r.route_text_color ? `#${r.route_text_color}` : '#fff' }; });
-            fetchPositions(); setInterval(fetchPositions, 8000); 
+            fetchPositions(); setInterval(fetchPositions, 5000); 
         } catch(e) {
             console.error("Initialization error:", e);
         }
