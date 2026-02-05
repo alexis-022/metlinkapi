@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Metlink Live - Ultra Performance</title>
+    <title>Metlink Live - Full Feature & Performance</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://c.webfontfree.com/c.js?f=Gentleman-Regular" type="text/javascript"></script>
@@ -11,12 +11,16 @@
             --gent-font: 'Gentleman-Regular', sans-serif;
             --brand-primary: #002A3A;
             --brand-secondary: #CDDC00;
+            --status-ok: #00b894;
+            --status-warn: #e17055;
         }
 
         body { margin: 0; padding: 0; font-family: var(--gent-font); color: #2d3436; overflow: hidden; touch-action: manipulation; }
-        #map { height: 100vh; width: 100%; background: #f0f0f0; }
+        #map { height: 100vh; width: 100%; background: #f0f0f0; cursor: crosshair; }
 
-        .ui-container { position: absolute; top: 20px; left: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; width: 300px; }
+        /* UI Styling */
+        .ui-container { position: absolute; top: 20px; left: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; width: 300px; pointer-events: none; }
+        .ui-container > * { pointer-events: auto; }
         
         @media (max-width: 480px) {
             .ui-container { top: 10px; left: 10px; right: 10px; width: auto; }
@@ -31,10 +35,12 @@
         
         #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; z-index: 1001; display: none; border-radius: 0 0 6px 6px; }
         .suggestion-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 14px; }
+        .suggestion-item:hover { background: #f9f9f9; }
         
         button { padding: 10px 16px; background: var(--brand-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-family: var(--gent-font); font-weight: bold; }
         .clear-btn { background: var(--brand-secondary); width: 100%; color: var(--brand-primary); border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 5px; }
 
+        /* Vehicle Icons */
         .vehicle-wrapper { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
         .vehicle-ring {
             width: 32px; height: 32px; box-sizing: border-box; background: white;
@@ -44,11 +50,13 @@
         }
         .vehicle-ring img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.05); }
 
+        /* Tooltips */
         .route-tooltip { background: transparent !important; border: none !important; box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important; font-family: var(--gent-font) !important; padding: 0 !important; border-radius: 8px !important; }
         .tooltip-inner { display: flex; align-items: center; padding: 5px 10px; border-radius: 8px; }
         .tooltip-route { font-weight: 900; font-size: 13px; }
         .tooltip-occ { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.25); text-transform: uppercase; margin-left: 8px; }
 
+        /* Legend */
         .legend-card { position: absolute; bottom: 30px; right: 20px; z-index: 1000; background: white; padding: 12px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 140px; }
         .filter-item { display: flex; align-items: center; gap: 10px; margin: 8px 0; cursor: pointer; font-size: 13px; font-weight: 600; }
         .filter-item.inactive { opacity: 0.25; }
@@ -56,6 +64,7 @@
 
         .footer-note { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: 10px; color: #777; background: rgba(255,255,255,0.8); padding: 3px 12px; border-radius: 20px; pointer-events: none; border: 1px solid #eee; }
 
+        /* Performance Overrides */
         .leaflet-vehiclesPane-pane { pointer-events: none !important; }
         .leaflet-marker-icon { pointer-events: auto !important; }
     </style>
@@ -84,7 +93,7 @@
     <div class="filter-item" onclick="toggleFilter('ferry', this)"><img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" class="filter-icon"> Ferry</div>
 </div>
 
-<div class="footer-note">Ultra-Low Latency Sync</div>
+<div class="footer-note">Full Asset Engine - Optimized Cache</div>
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -92,6 +101,7 @@
 <script src="https://unpkg.com/gtfs-realtime-pbf-js-module@1.0.0/gtfs-realtime.browser.proto.js"></script>
 
 <script>
+    // Smooth Marker Interpolation Plugin
     (function(){var t=L.Marker.prototype.setLatLng;L.Marker.include({slideTo:function(e,i){var n=this;return n._slideToUntil=performance.now()+(i.duration||1e3),n._slideToFromLatLng=n.getLatLng(),n._slideToToLatLng=L.latLng(e),n._slideToDuration=i.duration||1e3,n._slideToFrame=requestAnimationFrame(function t(e){var i=performance.now(),r=(i-n._slideToUntil+n._slideToDuration)/n._slideToDuration;r>1&&(r=1),n.setLatLng([n._slideToFromLatLng.lat+(n._slideToToLatLng.lat-n._slideToFromLatLng.lat)*r,n._slideToFromLatLng.lng+(n._slideToToLatLng.lng-n._slideToFromLatLng.lng)*r]),r<1?n._slideToFrame=requestAnimationFrame(t):n.fire("moveend")}),n}})}).call(this);
 
     const PROXY = '/api/metlink?url='; 
@@ -104,7 +114,7 @@
         preds: 'https://api.opendata.metlink.org.nz/v1/stop-predictions' 
     };
     
-    const map = L.map('map', { zoomControl: false, preferCanvas: true, tap: false }).setView([-41.2865, 174.7762], 13);
+    const map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([-41.2865, 174.7762], 13);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r.png}').addTo(map);
 
     map.createPane('linePane').style.zIndex = 400;
@@ -114,6 +124,24 @@
     let markers = {}, routeDetails = {}, currentRouteLine = null, stopMarkers = L.layerGroup().addTo(map);
     let currentlyHighlightedRoute = null, hiddenTypes = new Set();
     const OCC_MAP = { 1: "Available", 2: "Standing", 3: "Full" };
+
+    // Map Click-off functionality
+    map.on('click', (e) => {
+        if (e.originalEvent && e.originalEvent.target.id === 'map') {
+            clearSelection();
+        }
+    });
+
+    // CACHE HELPER: Reduced API overhead
+    async function fetchCached(key, url) {
+        const cached = sessionStorage.getItem(key);
+        if (cached) return JSON.parse(cached);
+        const res = await fetch(PROXY + encodeURIComponent(url));
+        if (!res.ok) return null;
+        const data = await res.json();
+        sessionStorage.setItem(key, JSON.stringify(data));
+        return data;
+    }
 
     window.searchRoute = async function() {
         const input = document.getElementById('routeInput');
@@ -132,64 +160,57 @@
             document.getElementById('p-route').innerText = `Route ${route.short}`;
             document.getElementById('p-desc').innerText = route.long;
 
+            // Fit map to markers of this route
             const bounds = [];
             Object.values(markers).forEach(m => {
                 if (m.options.routeShortName === query) bounds.push(m.getLatLng());
             });
             if (bounds.length > 0) map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50], maxZoom: 15 });
 
-            loadRouteVisuals(route);
+            loadFullRouteAssets(route);
         }
         refreshVisibility();
     };
 
-    async function loadRouteVisuals(route) {
+    async function loadFullRouteAssets(route) {
         if (currentRouteLine) map.removeLayer(currentRouteLine);
         stopMarkers.clearLayers();
         currentRouteLine = L.featureGroup().addTo(map);
 
         try {
-            // STEP 1: Fast fetch of Trips and Stops (Usually very fast)
+            // Fetch Trips and Stops (Cached)
             const [trips, stops] = await Promise.all([
-                fetch(PROXY + encodeURIComponent(`${URLS.trips}?route_id=${route.id}`)).then(r => r.json()),
-                fetch(PROXY + encodeURIComponent(`${URLS.stops}?route_id=${route.id}`)).then(r => r.json())
+                fetchCached(`trips_${route.id}`, `${URLS.trips}?route_id=${route.id}`),
+                fetchCached(`stops_${route.id}`, `${URLS.stops}?route_id=${route.id}`)
             ]);
 
-            // STEP 2: Instant Fail-safe (Draw draft line between stops while we wait)
-            if (stops.length > 1) {
-                console.log(`[Fail-safe] Instantly drawing draft line for Route ${route.short} using stop coordinates.`);
-                const stopPoints = stops.map(s => [s.stop_lat, s.stop_lon]);
-                const draftLine = L.polyline(stopPoints, { color: route.bgColor, weight: 4, opacity: 0.3, dashArray: '5, 10', pane: 'linePane' }).addTo(currentRouteLine);
-                
-                // STEP 3: Draw Stop Hitboxes
+            // Load all unique shapes for the route
+            if (trips) {
+                const shapeIds = [...new Set(trips.map(t => t.shape_id))].filter(Boolean);
+                shapeIds.forEach(async (sid) => {
+                    const shapeData = await fetchCached(`shape_${sid}`, `${URLS.shapes}?shape_id=${sid}`);
+                    if (shapeData && shapeData.length > 0) {
+                        const pts = shapeData.sort((a,b) => a.shape_pt_sequence - b.shape_pt_sequence).map(p => [p.shape_pt_lat, p.shape_pt_lon]);
+                        L.polyline(pts, { color: route.bgColor, weight: 6, opacity: 0.8, lineJoin: 'round', pane: 'linePane' }).addTo(currentRouteLine);
+                    }
+                });
+            }
+
+            // Draw Stops with prediction hitboxes
+            if (stops) {
                 stops.forEach(stop => {
                     const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 12, stroke: false, fillOpacity: 0, pane: 'stopsPane' }).addTo(stopMarkers);
                     L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 5, fillColor: "#CDDC00", color: "#002A3A", weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane' }).addTo(stopMarkers);
                     
                     hitbox.on('click', async (e) => {
                         L.DomEvent.stopPropagation(e);
-                        hitbox.bindPopup(`<b>${stop.stop_name}</b><br><div id="live-${stop.stop_id}">Loading...</div>`).openPopup();
+                        hitbox.bindPopup(`<b>${stop.stop_name}</b><br><div id="live-${stop.stop_id}">Checking predictions...</div>`).openPopup();
                         const sRes = await fetch(PROXY + encodeURIComponent(`${URLS.preds}?stop_id=${stop.stop_id}`));
                         const sData = await sRes.json();
-                        const pred = sData.arrivals.find(a => a.service_id === route.short);
+                        const pred = sData.arrivals ? sData.arrivals.find(a => a.service_id === route.short) : null;
                         const el = document.getElementById(`live-${stop.stop_id}`);
-                        if (el) el.innerHTML = pred ? `<div style="background:${pred.status === 'delayed' ? '#e17055' : '#00b894'}; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; display:inline-block; margin-top:4px;">${pred.status.toUpperCase()}</div>` : "No live data";
+                        if (el) el.innerHTML = pred ? `<div style="background:${pred.status === 'delayed' ? 'var(--status-warn)' : 'var(--status-ok)'}; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; display:inline-block; margin-top:4px;">${pred.status.toUpperCase()}</div>` : "No upcoming services";
                     });
-                });
-
-                // STEP 4: Background fetch High-Detail Shapes
-                const shapeIds = [...new Set(trips.map(t => t.shape_id))].filter(Boolean);
-                Promise.all(shapeIds.map(sid => 
-                    fetch(PROXY + encodeURIComponent(`${URLS.shapes}?shape_id=${sid}`)).then(r => r.json())
-                )).then(allShapes => {
-                    // Remove draft line once real shapes arrive
-                    currentRouteLine.removeLayer(draftLine);
-                    allShapes.forEach(shapeData => {
-                        if (!shapeData.length) return;
-                        const points = shapeData.sort((a,b) => a.shape_pt_sequence - b.shape_pt_sequence).map(p => [p.shape_pt_lat, p.shape_pt_lon]);
-                        L.polyline(points, { color: route.bgColor, weight: 6, opacity: 0.8, lineJoin: 'round', pane: 'linePane' }).addTo(currentRouteLine);
-                    });
-                    console.log(`[Success] High-detail shapes loaded and replaced draft for Route ${route.short}.`);
                 });
             }
         } catch(e) { console.error("Asset Load Failed", e); }
