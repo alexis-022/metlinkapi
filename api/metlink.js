@@ -1,9 +1,10 @@
 export default async function handler(req, res) {
     const { url } = req.query;
-    // Note: I'm putting the key here so the browser never sees it
     const API_KEY = 'dItDXPZfr0aeK9f8McupL3E4JiwkC8M3d1fj1ZZc';
 
-    if (!url) return res.status(400).send("No URL provided");
+    if (!url) {
+        return res.status(400).send("No URL provided");
+    }
 
     try {
         const response = await fetch(url, {
@@ -14,21 +15,26 @@ export default async function handler(req, res) {
         });
 
         if (!response.ok) {
-            return res.status(response.status).send(`Metlink API responded with ${response.status}`);
+            return res.status(response.status).send(`Metlink API error: ${response.status}`);
         }
 
-        // Handle the binary Protobuf data for vehicle positions
+        // IMPORTANT: Handle Binary Data for Vehicle Positions
         if (url.includes('vehiclepositions')) {
-            const buffer = await response.arrayBuffer();
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            
             res.setHeader('Content-Type', 'application/x-protobuf');
-            // We convert to Buffer for Vercel's response handling
-            return res.send(Buffer.from(buffer));
+            res.setHeader('Cache-Control', 'no-store, max-age=0');
+            return res.send(buffer);
         }
 
-        // Handle standard JSON for routes/stops
+        // Handle JSON data for Routes, Stops, and Predictions
         const data = await response.json();
+        res.setHeader('Content-Type', 'application/json');
         return res.status(200).json(data);
+
     } catch (e) {
+        console.error("Proxy Error:", e.message);
         return res.status(500).json({ error: e.message });
     }
 }
