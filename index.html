@@ -17,6 +17,7 @@
         body { margin: 0; padding: 0; font-family: var(--gent-font); color: #2d3436; overflow: hidden; }
         #map { height: 100vh; width: 100%; background: #f0f0f0; }
 
+        /* UI Elements */
         .ui-container { position: absolute; top: 20px; left: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; width: 280px; }
         .card { background: white; padding: 15px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
         .status-header { font-weight: bold; font-size: 0.9em; color: var(--brand-secondary); background: var(--brand-primary); margin: -15px -15px 10px -15px; padding: 10px 15px; border-radius: 12px 12px 0 0; }
@@ -29,18 +30,22 @@
         button { padding: 8px 12px; background: var(--brand-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-family: var(--gent-font); font-weight: bold; }
         .clear-btn { background: var(--brand-secondary); width: 100%; color: var(--brand-primary); border: none; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
-        .vehicle-wrapper { display: flex; align-items: center; justify-content: center; }
+        /* Vehicle Marker Styles */
+        .vehicle-wrapper { 
+            pointer-events: auto !important; 
+            cursor: pointer !important;
+        }
         .vehicle-ring {
             width: 24px; height: 24px; background: white;
             border: 2px solid var(--route-color); border-radius: 50%;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             display: flex; align-items: center; justify-content: center; padding: 1px;
-            pointer-events: auto !important; /* Fix for clicking */
+            pointer-events: none; /* Let the wrapper handle the click */
         }
-        .vehicle-ring img { width: 100%; height: 100%; display: block; pointer-events: none; }
+        .vehicle-ring img { width: 18px; height: 18px; display: block; }
 
-        .route-tooltip { border: none !important; box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important; font-family: var(--gent-font) !important; font-weight: 800 !important; font-size: 12px !important; padding: 4px 10px !important; border-radius: 6px !important; z-index: 9999 !important; }
-        
+        /* Tooltips & Popups */
+        .route-tooltip { border: none !important; box-shadow: 0 2px 8px rgba(0,0,0,0.4) !important; font-family: var(--gent-font) !important; font-weight: 800 !important; font-size: 12px !important; padding: 4px 10px !important; border-radius: 6px !important; }
         .stop-popup { min-width: 150px; font-family: var(--gent-font); }
         .status-pill { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; margin-top: 4px; }
         .status-on-time { background: var(--status-ok); color: white; }
@@ -51,6 +56,10 @@
         .filter-item { display: flex; align-items: center; gap: 10px; margin: 6px 0; cursor: pointer; font-size: 12px; }
         .filter-item.inactive { opacity: 0.2; }
         .filter-icon { width: 18px; height: 18px; border: 1px solid #eee; border-radius: 50%; padding: 2px; }
+        
+        /* Force pane interactivity */
+        .leaflet-vehiclesPane-pane { pointer-events: none !important; }
+        .leaflet-marker-icon { pointer-events: auto !important; }
     </style>
 </head>
 <body>
@@ -72,9 +81,9 @@
 </div>
 
 <div class="legend-card">
-    <div class="filter-item" onclick="toggleFilter('https://www.metlink.org.nz/assets/Icons/Bus.svg', this)"><img src="https://www.metlink.org.nz/assets/Icons/Bus.svg" class="filter-icon"> Bus</div>
-    <div class="filter-item" onclick="toggleFilter('https://www.metlink.org.nz/assets/Icons/Train.svg', this)"><img src="https://www.metlink.org.nz/assets/Icons/Train.svg" class="filter-icon"> Train</div>
-    <div class="filter-item" onclick="toggleFilter('https://www.metlink.org.nz/assets/Icons/Ferry.svg', this)"><img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" class="filter-icon"> Ferry</div>
+    <div class="filter-item" onclick="toggleFilter('Bus', this)"><img src="https://www.metlink.org.nz/assets/Icons/Bus.svg" class="filter-icon"> Bus</div>
+    <div class="filter-item" onclick="toggleFilter('Train', this)"><img src="https://www.metlink.org.nz/assets/Icons/Train.svg" class="filter-icon"> Train</div>
+    <div class="filter-item" onclick="toggleFilter('Ferry', this)"><img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" class="filter-icon"> Ferry</div>
 </div>
 
 <div id="map"></div>
@@ -97,24 +106,21 @@
         preds: 'https://api.opendata.metlink.org.nz/v1/stop-predictions' 
     };
     
-    const map = L.map('map', { zoomControl: false }).setView([-41.2865, 174.7762], 13);
+    const map = L.map('map', { zoomControl: false, tap: false }).setView([-41.2865, 174.7762], 13);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r.png}').addTo(map);
 
     map.createPane('linePane').style.zIndex = 400;
     map.createPane('stopsPane').style.zIndex = 500;
     const vPane = map.createPane('vehiclesPane');
     vPane.style.zIndex = 600;
-    vPane.style.pointerEvents = 'none'; // Pane is click-through, markers are not.
 
     let markers = {}, routeDetails = {}, stopNameCache = {}, currentRouteLine = null, stopMarkers = L.layerGroup().addTo(map);
     let currentlyHighlightedRoute = null, hiddenTypes = new Set(), isDragging = false;
     const OCC_MAP = { 0: "Unknown", 1: "Seats Available", 2: "Standing Room", 3: "Full" };
 
-    map.on('movestart', () => { isDragging = true; });
-    map.on('moveend', () => { setTimeout(() => { isDragging = false; }, 100); });
-    map.on('click', (e) => { 
-        if (!isDragging && e.originalEvent && e.originalEvent.target.id === 'map') { clearSelection(); } 
-    });
+    map.on('movestart', () => isDragging = true);
+    map.on('moveend', () => setTimeout(() => isDragging = false, 100));
+    map.on('click', (e) => { if (!isDragging && e.originalEvent.target.id === 'map') clearSelection(); });
 
     async function getStopName(stopId) {
         if (!stopId) return "Approaching Route Start";
@@ -122,7 +128,7 @@
         try {
             const res = await fetch(PROXY + encodeURIComponent(`${URLS.stops}?stop_id=${stopId}`));
             const data = await res.json();
-            if (data && data.length > 0) {
+            if (data?.length > 0) {
                 stopNameCache[stopId] = data[0].stop_name;
                 return data[0].stop_name;
             }
@@ -137,7 +143,7 @@
             const data = await res.json();
             data.forEach(stop => {
                 stopNameCache[stop.stop_id] = stop.stop_name;
-                const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 10, stroke: false, fillOpacity: 0, pane: 'stopsPane' }).addTo(stopMarkers);
+                const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 12, stroke: false, fillOpacity: 0, pane: 'stopsPane' }).addTo(stopMarkers);
                 L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 5, fillColor: "#CDDC00", color: "#002A3A", weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane' }).addTo(stopMarkers);
                 
                 hitbox.on('click', async () => {
@@ -199,27 +205,25 @@
             const base64String = await response.text();
             const binaryString = window.atob(base64String);
             const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
+            for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
 
             const feed = FeedMessage.read(new Pbf(bytes));
-            console.log(`Update: ${feed.entity.length} vehicles.`);
-            
             const activeIds = new Set();
+            
             for (const entity of feed.entity) {
                 const v = entity.vehicle; if (!v) continue;
                 const id = String(v.vehicle.id);
                 const details = routeDetails[v.trip.route_id] || { short: "??", bgColor: "#002A3A", textColor: "#fff" };
                 activeIds.add(id);
                 
-                let iconUrl = 'https://www.metlink.org.nz/assets/Icons/Bus.svg';
-                if (['HVL','KPL','JVL','MEL','WRL'].includes(details.short)) iconUrl = 'https://www.metlink.org.nz/assets/Icons/Train.svg';
-                if (details.short === 'CCL') iconUrl = 'https://www.metlink.org.nz/assets/Icons/Cable-Car.svg';
-                if (details.short === 'WHF') iconUrl = 'https://www.metlink.org.nz/assets/Icons/Ferry.svg';
-                
+                let mode = 'Bus';
+                if (['HVL','KPL','JVL','MEL','WRL'].includes(details.short)) mode = 'Train';
+                if (details.short === 'WHF') mode = 'Ferry';
+                if (details.short === 'CCL') mode = 'Cable Car';
+
+                let iconUrl = `https://www.metlink.org.nz/assets/Icons/${mode.replace(' ', '-')}.svg`;
                 const occName = OCC_MAP[v.occupancy_status || 0];
-                const popupBase = (stopName) => `<div style="font-family:var(--gent-font); min-width:140px;"><b>Route ${details.short}</b><br>Next: ${stopName}<br><small>${occName}</small></div>`;
+                const popupBase = (stopName) => `<div class="stop-popup"><b>Route ${details.short}</b><br>Next: ${stopName}<br><small>${occName}</small></div>`;
 
                 if (markers[id]) {
                     markers[id].slideTo([v.position.latitude, v.position.longitude], { duration: 4500 });
@@ -230,14 +234,16 @@
                             html: `<div class="vehicle-ring" style="--route-color: ${details.bgColor}"><img src="${iconUrl}"></div>`, 
                             iconSize: [28,28], iconAnchor: [14,14] 
                         }),
-                        pane: 'vehiclesPane', 
-                        iconFile: iconUrl, 
-                        routeShortName: details.short, 
-                        routeColors: { bg: details.bgColor, text: details.textColor },
-                        interactive: true 
-                    }).addTo(map).bindPopup(popupBase("Loading..."));
+                        pane: 'vehiclesPane',
+                        interactive: true,
+                        modeType: mode,
+                        routeShortName: details.short,
+                        routeColors: { bg: details.bgColor, text: details.textColor }
+                    }).addTo(map);
+
+                    markers[id].bindPopup(popupBase("Loading..."), { offset: [0, -10] });
                     
-                    markers[id].on('click', async () => {
+                    markers[id].on('mousedown', async () => {
                         const name = await getStopName(v.stop_id);
                         markers[id].setPopupContent(popupBase(name));
                     });
@@ -253,15 +259,14 @@
 
     function updateLabel(marker) {
         if (currentlyHighlightedRoute === marker.options.routeShortName) {
-            const content = `${marker.options.routeShortName}`;
-            if (!marker.getTooltip()) marker.bindTooltip(content, { permanent: true, direction: 'top', className: 'route-tooltip', offset: [0,-15] }).openTooltip();
+            if (!marker.getTooltip()) marker.bindTooltip(marker.options.routeShortName, { permanent: true, direction: 'top', className: 'route-tooltip', offset: [0,-15] }).openTooltip();
             const el = marker.getTooltip().getElement();
             if (el) { el.style.backgroundColor = marker.options.routeColors.bg; el.style.color = marker.options.routeColors.text; }
         } else if (marker.getTooltip()) marker.unbindTooltip();
     }
 
-    window.toggleFilter = function(icon, el) {
-        hiddenTypes.has(icon) ? hiddenTypes.delete(icon) : hiddenTypes.add(icon);
+    window.toggleFilter = function(mode, el) {
+        hiddenTypes.has(mode) ? hiddenTypes.delete(mode) : hiddenTypes.add(mode);
         el.classList.toggle('inactive'); refreshVisibility();
     };
 
@@ -283,7 +288,9 @@
 
     function refreshVisibility() {
         Object.values(markers).forEach(m => {
-            if (hiddenTypes.has(m.options.iconFile) || (currentlyHighlightedRoute && m.options.routeShortName !== currentlyHighlightedRoute)) map.removeLayer(m);
+            const isHiddenByFilter = hiddenTypes.has(m.options.modeType);
+            const isHiddenBySearch = currentlyHighlightedRoute && m.options.routeShortName !== currentlyHighlightedRoute;
+            if (isHiddenByFilter || isHiddenBySearch) map.removeLayer(m);
             else { if (!map.hasLayer(m)) map.addLayer(m); updateLabel(m); }
         });
     }
