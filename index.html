@@ -37,31 +37,33 @@
         button { padding: 10px 16px; background: var(--brand-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-family: var(--gent-font); font-weight: bold; }
         .clear-btn { background: var(--brand-secondary); width: 100%; color: var(--brand-primary); border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 5px; }
 
-        /* Icon Fix: 0px Gap, Strict Circle */
+        /* Icon Fix: Tight 0px Gap */
         .vehicle-wrapper { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
         .vehicle-ring {
             width: 32px; height: 32px; 
             box-sizing: border-box;
-            background: white; /* Prevents seeing the map through the icon */
+            background: white;
             border: 3px solid var(--route-color); 
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center; 
             overflow: hidden;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            transform: translateZ(0); /* Hardware acceleration for smoother edges */
+            transform: translateZ(0);
         }
         .vehicle-ring img { 
             width: 100%; height: 100%; 
-            object-fit: cover; /* Forces icon to fill and touch border at 0px */
+            object-fit: cover; 
             display: block; 
-            transform: scale(1.05); /* Slight overscale to ensure no 1px gaps exist */
+            transform: scale(1.05); 
         }
 
+        /* Tooltips */
         .route-tooltip { background: transparent !important; border: none !important; box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important; font-family: var(--gent-font) !important; padding: 0 !important; border-radius: 8px !important; }
         .tooltip-inner { display: flex; align-items: center; padding: 5px 10px; border-radius: 8px; }
         .tooltip-route { font-weight: 900; font-size: 13px; }
         .tooltip-occ { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.25); text-transform: uppercase; margin-left: 8px; }
 
+        /* Desktop Legend */
         .legend-card { position: absolute; bottom: 30px; right: 20px; z-index: 1000; background: white; padding: 12px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 140px; }
         .filter-item { display: flex; align-items: center; gap: 10px; margin: 8px 0; cursor: pointer; font-size: 13px; font-weight: 600; }
         .filter-item.inactive { opacity: 0.25; }
@@ -85,7 +87,7 @@
         </div>
         <button class="clear-btn" onclick="clearSelection()">Clear View</button>
     </div>
-    <div id="info-panel" class="card" style="display:none; border-left: 6px solid var(--brand-secondary);">
+    <div id="info-panel" class="card" style="display:none; border-left: 6px solid #CDDC00;">
         <span id="p-route" style="font-weight:800; color:var(--brand-primary); font-size:1.1em; display:block;">Route --</span>
         <p id="p-desc" style="font-size:0.85em; color:#666; margin:4px 0 0 0; line-height:1.3;"></p>
     </div>
@@ -175,13 +177,19 @@
     }
 
     window.searchRoute = async function() {
-        const query = document.getElementById('routeInput').value.trim().toUpperCase();
+        const input = document.getElementById('routeInput');
+        const query = input.value.trim().toUpperCase();
         if (!query) return;
-        document.getElementById('routeInput').blur(); // Hide keyboard on mobile
+        
+        input.blur(); // Hide keyboard
+        input.value = ""; // Clear input for clean UI
+        
         currentlyHighlightedRoute = query;
         const routeMeta = Object.values(routeDetails).find(r => r.short === query);
         if (routeMeta) {
-            document.getElementById('info-panel').style.display = 'block';
+            const infoPanel = document.getElementById('info-panel');
+            infoPanel.style.display = 'block';
+            infoPanel.style.borderLeftColor = routeMeta.bgColor; // Update accent color
             document.getElementById('p-route').innerText = `Route ${routeMeta.short}`;
             document.getElementById('p-desc').innerText = routeMeta.long;
             drawRouteShape(routeMeta.id, routeMeta.bgColor, true);
