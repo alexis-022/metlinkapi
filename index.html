@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Metlink Live - Full Feature & Performance</title>
+    <title>Metlink Live - Full Feature Restoration</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://c.webfontfree.com/c.js?f=Gentleman-Regular" type="text/javascript"></script>
@@ -15,18 +15,15 @@
             --status-warn: #e17055;
         }
 
-        body { margin: 0; padding: 0; font-family: var(--gent-font); color: #2d3436; overflow: hidden; touch-action: manipulation; }
-        #map { height: 100vh; width: 100%; background: #f0f0f0; cursor: crosshair; }
+        body { margin: 0; padding: 0; font-family: var(--gent-font); color: #2d3436; overflow: hidden; }
+        
+        #map { height: 100vh; width: 100%; background: #f0f0f0; cursor: default !important; }
+        .leaflet-container { cursor: default !important; }
+        .leaflet-interactive { cursor: pointer !important; }
 
-        /* UI Styling */
         .ui-container { position: absolute; top: 20px; left: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; width: 300px; pointer-events: none; }
         .ui-container > * { pointer-events: auto; }
         
-        @media (max-width: 480px) {
-            .ui-container { top: 10px; left: 10px; right: 10px; width: auto; }
-            .legend-card { display: none !important; }
-        }
-
         .card { background: white; padding: 15px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
         .status-header { font-weight: bold; font-size: 0.9em; color: var(--brand-secondary); background: var(--brand-primary); margin: -15px -15px 10px -15px; padding: 12px 15px; border-radius: 12px 12px 0 0; text-align: center; }
         
@@ -35,38 +32,31 @@
         
         #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; z-index: 1001; display: none; border-radius: 0 0 6px 6px; }
         .suggestion-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 14px; }
-        .suggestion-item:hover { background: #f9f9f9; }
         
         button { padding: 10px 16px; background: var(--brand-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-family: var(--gent-font); font-weight: bold; }
         .clear-btn { background: var(--brand-secondary); width: 100%; color: var(--brand-primary); border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 5px; }
 
-        /* Vehicle Icons */
         .vehicle-wrapper { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
         .vehicle-ring {
-            width: 32px; height: 32px; box-sizing: border-box; background: white;
-            border: 3px solid var(--route-color); border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2); transform: translateZ(0);
+            width: 32px; height: 32px; background: white; border: 3px solid var(--route-color); 
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+            overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        .vehicle-ring img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.05); }
+        .vehicle-ring img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Tooltips */
-        .route-tooltip { background: transparent !important; border: none !important; box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important; font-family: var(--gent-font) !important; padding: 0 !important; border-radius: 8px !important; }
+        .route-tooltip { background: transparent !important; border: none !important; box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important; padding: 0 !important; border-radius: 8px !important; }
         .tooltip-inner { display: flex; align-items: center; padding: 5px 10px; border-radius: 8px; }
         .tooltip-route { font-weight: 900; font-size: 13px; }
         .tooltip-occ { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.25); text-transform: uppercase; margin-left: 8px; }
 
-        /* Legend */
         .legend-card { position: absolute; bottom: 30px; right: 20px; z-index: 1000; background: white; padding: 12px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 140px; }
         .filter-item { display: flex; align-items: center; gap: 10px; margin: 8px 0; cursor: pointer; font-size: 13px; font-weight: 600; }
         .filter-item.inactive { opacity: 0.25; }
-        .filter-icon { width: 20px; height: 20px; object-fit: contain; }
 
-        .footer-note { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: 10px; color: #777; background: rgba(255,255,255,0.8); padding: 3px 12px; border-radius: 20px; pointer-events: none; border: 1px solid #eee; }
-
-        /* Performance Overrides */
-        .leaflet-vehiclesPane-pane { pointer-events: none !important; }
-        .leaflet-marker-icon { pointer-events: auto !important; }
+        @media (max-width: 480px) {
+            .ui-container { top: 10px; left: 10px; right: 10px; width: auto; }
+            .legend-card { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -88,12 +78,11 @@
 </div>
 
 <div class="legend-card">
-    <div class="filter-item" onclick="toggleFilter('bus', this)"><img src="https://www.metlink.org.nz/assets/Icons/Bus.svg" class="filter-icon"> Bus</div>
-    <div class="filter-item" onclick="toggleFilter('train', this)"><img src="https://www.metlink.org.nz/assets/Icons/Train.svg" class="filter-icon"> Train</div>
-    <div class="filter-item" onclick="toggleFilter('ferry', this)"><img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" class="filter-icon"> Ferry</div>
+    <div class="filter-item" onclick="toggleFilter('bus', this)"><img src="https://www.metlink.org.nz/assets/Icons/Bus.svg" width="20"> Bus</div>
+    <div class="filter-item" onclick="toggleFilter('train', this)"><img src="https://www.metlink.org.nz/assets/Icons/Train.svg" width="20"> Train</div>
+    <div class="filter-item" onclick="toggleFilter('ferry', this)"><img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" width="20"> Ferry</div>
 </div>
 
-<div class="footer-note">Full Asset Engine - Optimized Cache</div>
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -101,7 +90,6 @@
 <script src="https://unpkg.com/gtfs-realtime-pbf-js-module@1.0.0/gtfs-realtime.browser.proto.js"></script>
 
 <script>
-    // Smooth Marker Interpolation Plugin
     (function(){var t=L.Marker.prototype.setLatLng;L.Marker.include({slideTo:function(e,i){var n=this;return n._slideToUntil=performance.now()+(i.duration||1e3),n._slideToFromLatLng=n.getLatLng(),n._slideToToLatLng=L.latLng(e),n._slideToDuration=i.duration||1e3,n._slideToFrame=requestAnimationFrame(function t(e){var i=performance.now(),r=(i-n._slideToUntil+n._slideToDuration)/n._slideToDuration;r>1&&(r=1),n.setLatLng([n._slideToFromLatLng.lat+(n._slideToToLatLng.lat-n._slideToFromLatLng.lat)*r,n._slideToFromLatLng.lng+(n._slideToToLatLng.lng-n._slideToFromLatLng.lng)*r]),r<1?n._slideToFrame=requestAnimationFrame(t):n.fire("moveend")}),n}})}).call(this);
 
     const PROXY = '/api/metlink?url='; 
@@ -111,7 +99,7 @@
         trips: 'https://api.opendata.metlink.org.nz/v1/gtfs/trips', 
         shapes: 'https://api.opendata.metlink.org.nz/v1/gtfs/shapes', 
         stops: 'https://api.opendata.metlink.org.nz/v1/gtfs/stops',
-        preds: 'https://api.opendata.metlink.org.nz/v1/stop-predictions' 
+        preds: 'https://api.opendata.metlink.org.nz/v1/stop-predictions'
     };
     
     const map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([-41.2865, 174.7762], 13);
@@ -125,197 +113,165 @@
     let currentlyHighlightedRoute = null, hiddenTypes = new Set();
     const OCC_MAP = { 1: "Available", 2: "Standing", 3: "Full" };
 
-    // Map Click-off functionality
-    map.on('click', (e) => {
-        if (e.originalEvent && e.originalEvent.target.id === 'map') {
-            clearSelection();
-        }
-    });
+    map.on('click', (e) => { if (e.originalEvent.target.id === 'map') clearSelection(); });
 
-    // CACHE HELPER: Reduced API overhead
     async function fetchCached(key, url) {
         const cached = sessionStorage.getItem(key);
         if (cached) return JSON.parse(cached);
-        const res = await fetch(PROXY + encodeURIComponent(url));
-        if (!res.ok) return null;
-        const data = await res.json();
-        sessionStorage.setItem(key, JSON.stringify(data));
-        return data;
+        try {
+            const res = await fetch(PROXY + encodeURIComponent(url));
+            const data = await res.json();
+            sessionStorage.setItem(key, JSON.stringify(data));
+            return data;
+        } catch(e) { return null; }
     }
 
     window.searchRoute = async function() {
         const input = document.getElementById('routeInput');
         const query = input.value.trim().toUpperCase();
         if (!query) return;
-        
-        input.blur();
-        input.value = "";
+        input.blur(); input.value = "";
         currentlyHighlightedRoute = query;
 
         const route = Object.values(routeDetails).find(r => r.short === query);
         if (route) {
-            const info = document.getElementById('info-panel');
-            info.style.display = 'block';
-            info.style.borderLeftColor = route.bgColor;
+            document.getElementById('info-panel').style.display = 'block';
+            document.getElementById('info-panel').style.borderLeftColor = route.bgColor;
             document.getElementById('p-route').innerText = `Route ${route.short}`;
             document.getElementById('p-desc').innerText = route.long;
-
-            // Fit map to markers of this route
-            const bounds = [];
-            Object.values(markers).forEach(m => {
-                if (m.options.routeShortName === query) bounds.push(m.getLatLng());
-            });
-            if (bounds.length > 0) map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50], maxZoom: 15 });
-
-            loadFullRouteAssets(route);
+            
+            const b = [];
+            Object.values(markers).forEach(m => { if (m.options.routeShortName === query) b.push(m.getLatLng()); });
+            if (b.length > 0) map.fitBounds(L.latLngBounds(b), { padding: [50, 50], maxZoom: 15 });
+            loadAssets(route);
         }
         refreshVisibility();
     };
 
-    async function loadFullRouteAssets(route) {
+    async function loadAssets(route) {
         if (currentRouteLine) map.removeLayer(currentRouteLine);
         stopMarkers.clearLayers();
         currentRouteLine = L.featureGroup().addTo(map);
 
-        try {
-            // Fetch Trips and Stops (Cached)
-            const [trips, stops] = await Promise.all([
-                fetchCached(`trips_${route.id}`, `${URLS.trips}?route_id=${route.id}`),
-                fetchCached(`stops_${route.id}`, `${URLS.stops}?route_id=${route.id}`)
-            ]);
+        const [trips, stops] = await Promise.all([
+            fetchCached(`trips_${route.id}`, `${URLS.trips}?route_id=${route.id}`),
+            fetchCached(`stops_${route.id}`, `${URLS.stops}?route_id=${route.id}`)
+        ]);
 
-            // Load all unique shapes for the route
-            if (trips) {
-                const shapeIds = [...new Set(trips.map(t => t.shape_id))].filter(Boolean);
-                shapeIds.forEach(async (sid) => {
-                    const shapeData = await fetchCached(`shape_${sid}`, `${URLS.shapes}?shape_id=${sid}`);
-                    if (shapeData && shapeData.length > 0) {
-                        const pts = shapeData.sort((a,b) => a.shape_pt_sequence - b.shape_pt_sequence).map(p => [p.shape_pt_lat, p.shape_pt_lon]);
-                        L.polyline(pts, { color: route.bgColor, weight: 6, opacity: 0.8, lineJoin: 'round', pane: 'linePane' }).addTo(currentRouteLine);
-                    }
+        if (stops) {
+            stops.forEach(stop => {
+                const h = L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 12, stroke: false, fillOpacity: 0, pane: 'stopsPane' }).addTo(stopMarkers);
+                L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 5, fillColor: "#CDDC00", color: "#002A3A", weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane' }).addTo(stopMarkers);
+                
+                h.on('click', async (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    h.bindPopup(`<b>${stop.stop_name}</b><br><div id="live-${stop.stop_id}">Checking...</div>`).openPopup();
+                    const sRes = await fetch(PROXY + encodeURIComponent(`${URLS.preds}?stop_id=${stop.stop_id}`));
+                    const sData = await sRes.json();
+                    const p = sData.arrivals ? sData.arrivals.find(a => a.service_id === route.short) : null;
+                    const el = document.getElementById(`live-${stop.stop_id}`);
+                    if (el) el.innerHTML = p ? `<div style="background:${p.status === 'delayed' ? 'var(--status-warn)' : 'var(--status-ok)'}; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; display:inline-block; margin-top:4px;">${p.status.toUpperCase()}</div>` : "No live data";
                 });
-            }
+            });
+        }
 
-            // Draw Stops with prediction hitboxes
-            if (stops) {
-                stops.forEach(stop => {
-                    const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 12, stroke: false, fillOpacity: 0, pane: 'stopsPane' }).addTo(stopMarkers);
-                    L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 5, fillColor: "#CDDC00", color: "#002A3A", weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane' }).addTo(stopMarkers);
-                    
-                    hitbox.on('click', async (e) => {
-                        L.DomEvent.stopPropagation(e);
-                        hitbox.bindPopup(`<b>${stop.stop_name}</b><br><div id="live-${stop.stop_id}">Checking predictions...</div>`).openPopup();
-                        const sRes = await fetch(PROXY + encodeURIComponent(`${URLS.preds}?stop_id=${stop.stop_id}`));
-                        const sData = await sRes.json();
-                        const pred = sData.arrivals ? sData.arrivals.find(a => a.service_id === route.short) : null;
-                        const el = document.getElementById(`live-${stop.stop_id}`);
-                        if (el) el.innerHTML = pred ? `<div style="background:${pred.status === 'delayed' ? 'var(--status-warn)' : 'var(--status-ok)'}; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; display:inline-block; margin-top:4px;">${pred.status.toUpperCase()}</div>` : "No upcoming services";
-                    });
-                });
-            }
-        } catch(e) { console.error("Asset Load Failed", e); }
+        if (trips) {
+            const sids = [...new Set(trips.map(t => t.shape_id))].filter(Boolean);
+            sids.forEach(async (sid) => {
+                const sd = await fetchCached(`shape_${sid}`, `${URLS.shapes}?shape_id=${sid}`);
+                if (sd) {
+                    const pts = sd.sort((a,b) => a.shape_pt_sequence - b.shape_pt_sequence).map(p => [p.shape_pt_lat, p.shape_pt_lon]);
+                    L.polyline(pts, { color: route.bgColor, weight: 6, opacity: 0.8, pane: 'linePane' }).addTo(currentRouteLine);
+                }
+            });
+        }
     }
 
     async function fetchPositions() {
         try {
-            const response = await fetch(PROXY + encodeURIComponent(`${URLS.pos}?t=${Date.now()}`));
-            const bytes = Uint8Array.from(atob(await response.text()), c => c.charCodeAt(0));
-            const feed = FeedMessage.read(new Pbf(bytes));
-            const activeIds = new Set();
+            const res = await fetch(PROXY + encodeURIComponent(`${URLS.pos}?t=${Date.now()}`));
+            const b = Uint8Array.from(atob(await res.text()), c => c.charCodeAt(0));
+            const feed = FeedMessage.read(new Pbf(b));
+            const active = new Set();
 
-            feed.entity.forEach(entity => {
-                const v = entity.vehicle; if (!v) return;
-                const id = String(v.vehicle.id); activeIds.add(id);
+            feed.entity.forEach(e => {
+                const v = e.vehicle; if (!v) return;
+                const id = String(v.vehicle.id); active.add(id);
                 const rd = routeDetails[v.trip.route_id] || { short: "?", bgColor: "#002A3A", textColor: "#fff", type: 'bus' };
-                const occText = OCC_MAP[v.occupancy_status];
+                const occ = OCC_MAP[v.occupancy_status];
 
                 if (markers[id]) {
                     markers[id].slideTo([v.position.latitude, v.position.longitude], { duration: 7500 });
-                    markers[id].options.occText = occText;
+                    markers[id].options.occText = occ;
                 } else {
-                    let iconUrl = 'https://www.metlink.org.nz/assets/Icons/Bus.svg';
-                    if (rd.type === 'train') iconUrl = 'https://www.metlink.org.nz/assets/Icons/Train.svg';
-                    if (rd.type === 'ferry') iconUrl = 'https://www.metlink.org.nz/assets/Icons/Ferry.svg';
+                    let icon = 'https://www.metlink.org.nz/assets/Icons/Bus.svg';
+                    if (rd.type === 'train') icon = 'https://www.metlink.org.nz/assets/Icons/Train.svg';
+                    if (rd.type === 'ferry') icon = 'https://www.metlink.org.nz/assets/Icons/Ferry.svg';
 
                     markers[id] = L.marker([v.position.latitude, v.position.longitude], {
-                        icon: L.divIcon({ 
-                            className: 'vehicle-wrapper', 
-                            html: `<div class="vehicle-ring" style="--route-color: ${rd.bgColor}"><img src="${iconUrl}"></div>`, 
-                            iconSize: [32,32], iconAnchor: [16,16] 
-                        }),
-                        pane: 'vehiclesPane', vehicleType: rd.type, routeShortName: rd.short, routeColors: { bg: rd.bgColor, text: rd.textColor }, occText: occText
+                        icon: L.divIcon({ className: 'vehicle-wrapper', html: `<div class="vehicle-ring" style="--route-color: ${rd.bgColor}"><img src="${icon}"></div>`, iconSize: [32,32] }),
+                        pane: 'vehiclesPane', vehicleType: rd.type, routeShortName: rd.short, routeColors: { bg: rd.bgColor, text: rd.textColor }, occText: occ
                     }).addTo(map);
-
-                    markers[id].on('click', (e) => { 
-                        L.DomEvent.stopPropagation(e); 
-                        document.getElementById('routeInput').value = rd.short; 
-                        searchRoute();
-                    });
+                    markers[id].on('click', (ev) => { L.DomEvent.stopPropagation(ev); });
                 }
                 updateLabel(markers[id]);
             });
-            Object.keys(markers).forEach(mid => { if (!activeIds.has(mid)) { map.removeLayer(markers[mid]); delete markers[mid]; } });
+            Object.keys(markers).forEach(mid => { if (!active.has(mid)) { map.removeLayer(markers[mid]); delete markers[mid]; } });
             refreshVisibility();
-            document.getElementById('id-count').innerText = activeIds.size;
+            document.getElementById('id-count').innerText = active.size;
         } catch(e) {}
     }
 
-    function updateLabel(marker) {
-        if (currentlyHighlightedRoute === marker.options.routeShortName) {
-            const occHtml = marker.options.occText ? `<span class="tooltip-occ">${marker.options.occText}</span>` : "";
-            const content = `<div class="tooltip-inner" style="background:${marker.options.routeColors.bg}; color:${marker.options.routeColors.text}"><span class="tooltip-route">${marker.options.routeShortName}</span>${occHtml}</div>`;
-            if (!marker.getTooltip()) marker.bindTooltip(content, { permanent: true, direction: 'top', className: 'route-tooltip', offset: [0,-18] }).openTooltip();
-            else if (marker.getTooltip().getContent() !== content) marker.setTooltipContent(content);
-        } else if (marker.getTooltip()) marker.unbindTooltip();
+    function updateLabel(m) {
+        if (currentlyHighlightedRoute === m.options.routeShortName) {
+            const o = m.options.occText ? `<span class="tooltip-occ">${m.options.occText}</span>` : "";
+            const c = `<div class="tooltip-inner" style="background:${m.options.routeColors.bg}; color:${m.options.routeColors.text}"><span class="tooltip-route">${m.options.routeShortName}</span>${o}</div>`;
+            if (!m.getTooltip()) m.bindTooltip(c, { permanent: true, direction: 'top', className: 'route-tooltip', offset: [0,-18] }).openTooltip();
+            else if (m.getTooltip().getContent() !== c) m.setTooltipContent(c);
+        } else if (m.getTooltip()) m.unbindTooltip();
     }
 
-    window.toggleFilter = function(type, el) {
-        hiddenTypes.has(type) ? hiddenTypes.delete(type) : hiddenTypes.add(type);
-        el.classList.toggle('inactive'); refreshVisibility();
-    };
+    window.toggleFilter = (t, el) => { hiddenTypes.has(t) ? hiddenTypes.delete(t) : hiddenTypes.add(t); el.classList.toggle('inactive'); refreshVisibility(); };
 
-    window.handleAutocomplete = function() {
+    window.handleAutocomplete = () => {
         const val = document.getElementById('routeInput').value.trim().toUpperCase();
         const suggs = document.getElementById('suggestions');
         if (!val) { suggs.style.display = 'none'; return; }
-        const matches = Object.values(routeDetails).filter(r => r.short.startsWith(val)).slice(0, 5);
-        if (matches.length > 0) {
-            suggs.innerHTML = matches.map(m => `<div class="suggestion-item" onclick="selectSugg('${m.short}')">${m.short} - ${m.long}</div>`).join('');
+        const m = Object.values(routeDetails).filter(r => r.short.startsWith(val)).slice(0, 5);
+        if (m.length > 0) {
+            suggs.innerHTML = m.map(r => `<div class="suggestion-item" onclick="selectSugg('${r.short}')">${r.short} - ${r.long}</div>`).join('');
             suggs.style.display = 'block';
-        } else { suggs.style.display = 'none'; }
+        } else suggs.style.display = 'none';
     };
 
     window.selectSugg = (s) => { document.getElementById('routeInput').value = s; searchRoute(); document.getElementById('suggestions').style.display = 'none'; };
 
     function refreshVisibility() {
         Object.values(markers).forEach(m => {
-            const isFiltered = hiddenTypes.has(m.options.vehicleType) || (currentlyHighlightedRoute && m.options.routeShortName !== currentlyHighlightedRoute);
-            if (isFiltered) { if (map.hasLayer(m)) map.removeLayer(m); }
+            const f = hiddenTypes.has(m.options.vehicleType) || (currentlyHighlightedRoute && m.options.routeShortName !== currentlyHighlightedRoute);
+            if (f) { if (map.hasLayer(m)) map.removeLayer(m); }
             else { if (!map.hasLayer(m)) map.addLayer(m); updateLabel(m); }
         });
     }
 
-    window.clearSelection = function() {
+    window.clearSelection = () => {
         if (currentRouteLine) map.removeLayer(currentRouteLine);
         stopMarkers.clearLayers();
         currentlyHighlightedRoute = null;
-        document.getElementById('routeInput').value = "";
         document.getElementById('info-panel').style.display = 'none';
         refreshVisibility();
     };
 
     async function init() { 
-        try {
-            const res = await fetch(PROXY + encodeURIComponent(URLS.routes));
-            const data = await res.json();
-            data.forEach(r => { 
-                let type = 'bus';
-                if (['HVL','KPL','JVL','MEL','WRL'].includes(r.route_short_name)) type = 'train';
-                if (r.route_short_name === 'WHF') type = 'ferry';
-                routeDetails[r.route_id] = { id: r.route_id, short: r.route_short_name, long: r.route_long_name, type, bgColor: r.route_color ? `#${r.route_color}` : '#002A3A', textColor: r.route_text_color ? `#${r.route_text_color}` : '#fff' }; 
-            });
-            fetchPositions(); setInterval(fetchPositions, 8000); 
-        } catch(e) {}
+        const res = await fetch(PROXY + encodeURIComponent(URLS.routes));
+        const data = await res.json();
+        data.forEach(r => { 
+            let t = 'bus';
+            if (['HVL','KPL','JVL','MEL','WRL'].includes(r.route_short_name)) t = 'train';
+            if (r.route_short_name === 'WHF') t = 'ferry';
+            routeDetails[r.route_id] = { id: r.route_id, short: r.route_short_name, long: r.route_long_name, type: t, bgColor: r.route_color ? `#${r.route_color}` : '#002A3A', textColor: r.route_text_color ? `#${r.route_text_color}` : '#fff' }; 
+        });
+        fetchPositions(); setInterval(fetchPositions, 8000); 
     }
     init();
 </script>
