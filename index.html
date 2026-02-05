@@ -195,11 +195,18 @@
     async function fetchPositions() {
         try {
             const response = await fetch(PROXY + encodeURIComponent(`${URLS.pos}?t=${Date.now()}`));
-            const buffer = await response.arrayBuffer();
             
-            // Decodes the Protobuf binary data
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+            // Force the browser to treat this as a Blob first, then convert to ArrayBuffer
+            // This is more robust for binary data over proxies
+            const blob = await response.blob();
+            const buffer = await blob.arrayBuffer();
+            
+            if (buffer.byteLength === 0) return;
+
+            // Decode the Protobuf
             const feed = FeedMessage.read(new Pbf(new Uint8Array(buffer)));
-            console.log(`Update: ${feed.entity.length} vehicles found.`);
             
             const activeIds = new Set();
             for (const entity of feed.entity) {
@@ -239,9 +246,10 @@
             Object.keys(markers).forEach(mid => { if (!activeIds.has(mid)) { map.removeLayer(markers[mid]); delete markers[mid]; } });
             refreshVisibility();
             document.getElementById('id-count').innerText = activeIds.size;
-        } catch(e) { console.error("Position Error:", e); }
+        } catch(e) { 
+            console.error("Binary Decoding Error:", e); 
+        }
     }
-
     function updateLabel(marker) {
         if (currentlyHighlightedRoute === marker.options.routeShortName) {
             const content = `${marker.options.routeShortName}`;
