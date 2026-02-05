@@ -18,7 +18,6 @@
         body { margin: 0; padding: 0; font-family: var(--gent-font); color: #2d3436; overflow: hidden; touch-action: manipulation; }
         #map { height: 100vh; width: 100%; background: #f0f0f0; }
 
-        /* UI Containers */
         .ui-container { position: absolute; top: 20px; left: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; width: 300px; }
         
         @media (max-width: 480px) {
@@ -38,44 +37,38 @@
         button { padding: 10px 16px; background: var(--brand-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-family: var(--gent-font); font-weight: bold; }
         .clear-btn { background: var(--brand-secondary); width: 100%; color: var(--brand-primary); border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 5px; }
 
-        /* Vehicle Icons */
-        .vehicle-wrapper { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; }
+        /* Vehicle Icons - No white ring, full fill */
+        .vehicle-wrapper { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; }
         .vehicle-ring {
-            width: 26px; height: 26px; background: white;
-            border: 2px solid var(--route-color); border-radius: 50%;
+            width: 28px; height: 28px; background: transparent;
+            border: 3px solid var(--route-color); border-radius: 50%;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
-        .vehicle-ring img { width: 18px; height: 18px; object-fit: contain; display: block; flex-shrink: 0; }
+        .vehicle-ring img { width: 100%; height: 100%; object-fit: contain; display: block; flex-shrink: 0; }
 
-        /* FIX: Smart Tooltip Styling */
+        /* Smart Tooltip Styling - Gap Removed */
         .route-tooltip { 
-            background: white !important;
+            background: transparent !important;
             border: none !important; 
             box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important; 
             font-family: var(--gent-font) !important; 
             padding: 0 !important; 
             border-radius: 8px !important;
             overflow: hidden;
-            min-width: 60px;
         }
-        .tooltip-inner { display: flex; align-items: center; padding: 5px 10px; gap: 8px; }
+        .tooltip-inner { display: flex; align-items: center; padding: 5px 10px; border-radius: 8px; }
         .tooltip-route { font-weight: 900; font-size: 13px; }
         .tooltip-occ { 
             font-size: 10px; 
             font-weight: 800; 
             padding: 2px 6px; 
             border-radius: 4px; 
-            background: rgba(255,255,255,0.3); 
+            background: rgba(255,255,255,0.25); 
             text-transform: uppercase; 
+            margin-left: 8px;
             white-space: nowrap;
         }
-
-        /* Stop Prediction UI */
-        .stop-popup { min-width: 150px; font-family: var(--gent-font); }
-        .status-pill { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; margin-top: 4px; color: white; }
-        .status-on-time { background: var(--status-ok); }
-        .status-delayed { background: var(--status-warn); }
 
         .legend-card { position: absolute; bottom: 30px; right: 20px; z-index: 1000; background: white; padding: 12px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 140px; }
         .filter-item { display: flex; align-items: center; gap: 10px; margin: 8px 0; cursor: pointer; font-size: 13px; font-weight: 600; }
@@ -142,7 +135,7 @@
 
     let markers = {}, routeDetails = {}, currentRouteLine = null, stopMarkers = L.layerGroup().addTo(map);
     let currentlyHighlightedRoute = null, hiddenTypes = new Set(), isDragging = false;
-    const OCC_MAP = { 0: "Unknown", 1: "Available", 2: "Standing", 3: "Full" };
+    const OCC_MAP = { 0: null, 1: "Available", 2: "Standing", 3: "Full" };
 
     map.on('movestart', () => { isDragging = true; });
     map.on('moveend', () => { setTimeout(() => { isDragging = false; }, 100); });
@@ -166,7 +159,7 @@
                     const sData = await sRes.json();
                     const pred = sData.arrivals.find(a => a.service_id === routeShortName);
                     const el = document.getElementById(`live-status-${stop.stop_id}`);
-                    if (el) el.innerHTML = pred ? `<div class="status-pill ${pred.status === 'delayed' ? 'status-delayed' : 'status-on-time'}">${pred.status.toUpperCase()}</div>` : "No live data";
+                    if (el) el.innerHTML = pred ? `<div style="background:${pred.status === 'delayed' ? 'var(--status-warn)' : 'var(--status-ok)'}; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold; text-transform:uppercase; display:inline-block; margin-top:4px;">${pred.status.toUpperCase()}</div>` : "No live data";
                 });
             });
         } catch(e) {}
@@ -216,19 +209,19 @@
                 const id = String(v.vehicle.id);
                 activeIds.add(id);
                 const details = routeDetails[v.trip.route_id] || { short: "??", bgColor: "#002A3A", textColor: "#fff", type: 'bus' };
-                const occName = OCC_MAP[v.occupancy_status || 0];
+                const occText = OCC_MAP[v.occupancy_status || 0];
 
                 if (markers[id]) {
                     markers[id].slideTo([v.position.latitude, v.position.longitude], { duration: 7500 });
-                    markers[id].options.occText = occName;
+                    markers[id].options.occText = occText;
                 } else {
                     let iconUrl = 'https://www.metlink.org.nz/assets/Icons/Bus.svg';
                     if (details.type === 'train') iconUrl = 'https://www.metlink.org.nz/assets/Icons/Train.svg';
                     if (details.type === 'ferry') iconUrl = 'https://www.metlink.org.nz/assets/Icons/Ferry.svg';
 
                     markers[id] = L.marker([v.position.latitude, v.position.longitude], {
-                        icon: L.divIcon({ className: 'vehicle-wrapper', html: `<div class="vehicle-ring" style="--route-color: ${details.bgColor}"><img src="${iconUrl}"></div>`, iconSize: [28,28], iconAnchor: [14,14] }),
-                        pane: 'vehiclesPane', vehicleType: details.type, routeShortName: details.short, routeColors: { bg: details.bgColor, text: details.textColor }, occText: occName
+                        icon: L.divIcon({ className: 'vehicle-wrapper', html: `<div class="vehicle-ring" style="--route-color: ${details.bgColor}"><img src="${iconUrl}"></div>`, iconSize: [30,30], iconAnchor: [15,15] }),
+                        pane: 'vehiclesPane', vehicleType: details.type, routeShortName: details.short, routeColors: { bg: details.bgColor, text: details.textColor }, occText: occText
                     }).addTo(map);
 
                     markers[id].on('click', (e) => { 
@@ -247,11 +240,10 @@
 
     function updateLabel(marker) {
         if (currentlyHighlightedRoute === marker.options.routeShortName) {
-            const occLabel = (marker.options.occText && marker.options.occText !== "Unknown") ? `<span class="tooltip-occ">${marker.options.occText}</span>` : "";
+            const occHtml = marker.options.occText ? `<span class="tooltip-occ">${marker.options.occText}</span>` : "";
             const content = `
                 <div class="tooltip-inner" style="background-color: ${marker.options.routeColors.bg}; color: ${marker.options.routeColors.text};">
-                    <span class="tooltip-route">${marker.options.routeShortName}</span>
-                    ${occLabel}
+                    <span class="tooltip-route">${marker.options.routeShortName}</span>${occHtml}
                 </div>`;
             
             if (!marker.getTooltip()) marker.bindTooltip(content, { permanent: true, direction: 'top', className: 'route-tooltip', offset: [0,-15] }).openTooltip();
