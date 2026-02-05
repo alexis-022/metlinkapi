@@ -20,10 +20,9 @@
 
         .ui-container { position: absolute; top: 20px; left: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; width: 300px; }
         
-        /* Mobile Specific UI */
         @media (max-width: 480px) {
             .ui-container { top: 10px; left: 10px; right: 10px; width: auto; }
-            .legend-card { display: none !important; } /* Hide filters on mobile */
+            .legend-card { display: none !important; }
         }
 
         .card { background: white; padding: 15px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
@@ -33,50 +32,36 @@
         input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: var(--gent-font); outline: none; font-size: 16px; width: 100%; }
         
         #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; z-index: 1001; display: none; border-radius: 0 0 6px 6px; }
-        .suggestion-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 14px; line-height: 1.2; }
+        .suggestion-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 14px; }
         
         button { padding: 10px 16px; background: var(--brand-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-family: var(--gent-font); font-weight: bold; }
         .clear-btn { background: var(--brand-secondary); width: 100%; color: var(--brand-primary); border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 5px; }
 
-        /* Vehicle Icons - Strict Circular Geometry */
+        /* Icon Fix: 0px Gap, Strict Circle */
         .vehicle-wrapper { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
         .vehicle-ring {
-            width: 30px; height: 30px; 
+            width: 32px; height: 32px; 
             box-sizing: border-box;
-            background: transparent;
+            background: white; /* Prevents seeing the map through the icon */
             border: 3px solid var(--route-color); 
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center; 
             overflow: hidden;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transform: translateZ(0); /* Hardware acceleration for smoother edges */
         }
-        .vehicle-ring img { width: 22px; height: 22px; object-fit: contain; display: block; flex-shrink: 0; }
+        .vehicle-ring img { 
+            width: 100%; height: 100%; 
+            object-fit: cover; /* Forces icon to fill and touch border at 0px */
+            display: block; 
+            transform: scale(1.05); /* Slight overscale to ensure no 1px gaps exist */
+        }
 
-        /* Tooltip Styling */
-        .route-tooltip { 
-            background: transparent !important;
-            border: none !important; 
-            box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important; 
-            font-family: var(--gent-font) !important; 
-            padding: 0 !important; 
-            border-radius: 8px !important;
-        }
+        .route-tooltip { background: transparent !important; border: none !important; box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important; font-family: var(--gent-font) !important; padding: 0 !important; border-radius: 8px !important; }
         .tooltip-inner { display: flex; align-items: center; padding: 5px 10px; border-radius: 8px; }
         .tooltip-route { font-weight: 900; font-size: 13px; }
-        .tooltip-occ { 
-            font-size: 10px; 
-            font-weight: 800; 
-            padding: 2px 6px; 
-            border-radius: 4px; 
-            background: rgba(255,255,255,0.25); 
-            text-transform: uppercase; 
-            margin-left: 8px;
-        }
+        .tooltip-occ { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.25); text-transform: uppercase; margin-left: 8px; }
 
-        /* Stop Indicators */
-        .stop-indicator { border: 2px solid #002A3A; background: #CDDC00; border-radius: 50%; width: 10px; height: 10px; }
-
-        /* Legend for Desktop Only */
         .legend-card { position: absolute; bottom: 30px; right: 20px; z-index: 1000; background: white; padding: 12px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 140px; }
         .filter-item { display: flex; align-items: center; gap: 10px; margin: 8px 0; cursor: pointer; font-size: 13px; font-weight: 600; }
         .filter-item.inactive { opacity: 0.25; }
@@ -192,6 +177,7 @@
     window.searchRoute = async function() {
         const query = document.getElementById('routeInput').value.trim().toUpperCase();
         if (!query) return;
+        document.getElementById('routeInput').blur(); // Hide keyboard on mobile
         currentlyHighlightedRoute = query;
         const routeMeta = Object.values(routeDetails).find(r => r.short === query);
         if (routeMeta) {
