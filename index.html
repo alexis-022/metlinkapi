@@ -54,7 +54,11 @@
         .filter-item.inactive { opacity: 0.25; }
         .filter-icon { width: 20px; height: 20px; object-fit: contain; }
 
-        .footer-note { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: 10px; color: #777; background: rgba(255,255,255,0.8); padding: 3px 12px; border-radius: 20px; pointer-events: none; border: 1px solid #eee; white-space: nowrap; }
+        .footer-note { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: 10px; background: rgba(255,255,255,0.8); padding: 3px 12px; border-radius: 20px; border: 1px solid #eee; white-space: nowrap; }
+        
+        /* Styled footer link */
+        .footer-note a { color: #777; text-decoration: none; pointer-events: auto; }
+        .footer-note a:hover { color: var(--brand-primary); font-weight: bold; }
 
         .leaflet-vehiclesPane-pane { pointer-events: none !important; }
         .leaflet-marker-icon { pointer-events: auto !important; }
@@ -86,7 +90,10 @@
     <div class="filter-item" onclick="toggleFilter('ferry', this)"><img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" class="filter-icon"> Ferry</div>
 </div>
 
-<div class="footer-note">100% AI - But a lot of prompt writing</div>
+<div class="footer-note">
+    <a href="indexdev.html">100% AI - But a lot of prompt writing</a>
+</div>
+
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -169,8 +176,6 @@
             });
 
             const shapeIds = [...new Set(trips.map(t => t.shape_id))].filter(Boolean);
-            
-            // Refactored Shape Loading logic to prevent race conditions
             const shapePromises = shapeIds.map(sid => 
                 fetch(PROXY + encodeURIComponent(`${URLS.shapes}?shape_id=${sid}`)).then(r => r.json())
             );
