@@ -279,7 +279,7 @@
             data.forEach(r => { 
                 let type = 'bus';
                 if (['HVL','KPL','JVL','MEL','WRL'].includes(r.route_short_name)) type = 'train';
-                if (['QDF', "MIF", "CCL", ].includes(r.route_short_name)) type = 'ferry';                
+                if (['QDF', "MIF", "CCL", "?" ].includes(r.route_short_name)) type = 'ferry';                
                 routeDetails[r.route_id] = { id: r.route_id, short: r.route_short_name, long: r.route_long_name, type, bgColor: r.route_color ? `#${r.route_color}` : '#002A3A', textColor: r.route_text_color ? `#${r.route_text_color}` : '#fff' }; 
             });
             fetchPositions(); setInterval(fetchPositions, 8000); 
@@ -289,4 +289,5 @@
 </script>
 </body>
 </html>
+
 
