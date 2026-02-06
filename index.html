@@ -169,17 +169,21 @@
             });
 
             const shapeIds = [...new Set(trips.map(t => t.shape_id))].filter(Boolean);
-            shapeIds.forEach(async (sid) => {
-                try {
-                    const res = await fetch(PROXY + encodeURIComponent(`${URLS.shapes}?shape_id=${sid}`));
-                    const shapeData = await res.json();
-                    if (shapeData && shapeData.length > 0) {
-                        const points = shapeData
-                            .sort((a, b) => parseInt(a.shape_pt_sequence) - parseInt(b.shape_pt_sequence))
-                            .map(p => [p.shape_pt_lat, p.shape_pt_lon]);
-                        L.polyline(points, { color: route.bgColor, weight: 6, opacity: 0.8, lineJoin: 'round', pane: 'linePane' }).addTo(currentRouteLine);
-                    }
-                } catch(e) { console.warn("Shape segment failed", sid); }
+            
+            // Refactored Shape Loading logic to prevent race conditions
+            const shapePromises = shapeIds.map(sid => 
+                fetch(PROXY + encodeURIComponent(`${URLS.shapes}?shape_id=${sid}`)).then(r => r.json())
+            );
+
+            const allShapeData = await Promise.all(shapePromises);
+            
+            allShapeData.forEach(shapeData => {
+                if (shapeData && shapeData.length > 0) {
+                    const points = shapeData
+                        .sort((a, b) => parseInt(a.shape_pt_sequence) - parseInt(b.shape_pt_sequence))
+                        .map(p => [p.shape_pt_lat, p.shape_pt_lon]);
+                    L.polyline(points, { color: route.bgColor, weight: 6, opacity: 0.8, lineJoin: 'round', pane: 'linePane' }).addTo(currentRouteLine);
+                }
             });
         } catch(e) { console.error("Asset Load Failed", e); }
     }
@@ -279,7 +283,7 @@
             data.forEach(r => { 
                 let type = 'bus';
                 if (['HVL','KPL','JVL','MEL','WRL'].includes(r.route_short_name)) type = 'train';
-                if (['QDF', "MIF", "CCL", "?" ].includes(r.route_short_name)) type = 'ferry';                
+                if (['QDF', "MIF", "CCL", "WHF", "FER" ].includes(r.route_short_name)) type = 'ferry';
                 routeDetails[r.route_id] = { id: r.route_id, short: r.route_short_name, long: r.route_long_name, type, bgColor: r.route_color ? `#${r.route_color}` : '#002A3A', textColor: r.route_text_color ? `#${r.route_text_color}` : '#fff' }; 
             });
             fetchPositions(); setInterval(fetchPositions, 8000); 
@@ -289,5 +293,3 @@
 </script>
 </body>
 </html>
-
-
