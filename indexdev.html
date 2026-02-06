@@ -153,20 +153,27 @@
         refreshVisibility();
     };
 
-    async function loadRouteVisuals(route) {
+async function loadRouteVisuals(route) {
         if (currentRouteLine) map.removeLayer(currentRouteLine);
         stopMarkers.clearLayers();
         currentRouteLine = L.featureGroup().addTo(map);
 
         try {
+            // 1. Get Trips and Stops simultaneously
             const [trips, stops] = await Promise.all([
                 fetch(PROXY + encodeURIComponent(`${URLS.trips}?route_id=${route.id}`)).then(r => r.json()),
                 fetch(PROXY + encodeURIComponent(`${URLS.stops}?route_id=${route.id}`)).then(r => r.json())
             ]);
 
+            // 2. Render Stops
             stops.forEach(stop => {
-                const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 12, stroke: false, fillOpacity: 0, pane: 'stopsPane' }).addTo(stopMarkers);
-                L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 5, fillColor: "#CDDC00", color: "#002A3A", weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane' }).addTo(stopMarkers);
+                const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], { 
+                    radius: 12, stroke: false, fillOpacity: 0, pane: 'stopsPane' 
+                }).addTo(stopMarkers);
+                
+                L.circleMarker([stop.stop_lat, stop.stop_lon], { 
+                    radius: 5, fillColor: "#CDDC00", color: "#002A3A", weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane' 
+                }).addTo(stopMarkers);
                 
                 hitbox.on('click', (e) => {
                     L.DomEvent.stopPropagation(e);
@@ -175,6 +182,39 @@
                 });
             });
 
+            // 3. The "Trip-to-Shape" Fix:
+            // We get every unique shape_id associated with this route's current trips
+            const shapeIds = [...new Set(trips.map(t => t.shape_id))].filter(Boolean);
+
+            // Fetch all shapes in parallel
+            const shapePromises = shapeIds.map(sid => 
+                fetch(PROXY + encodeURIComponent(`${URLS.shapes}?shape_id=${sid}`)).then(r => r.json())
+            );
+
+            const allShapes = await Promise.all(shapePromises);
+            
+            allShapes.forEach(shapeData => {
+                if (shapeData && shapeData.length > 0) {
+                    // Sort by sequence to ensure the line doesn't jump back and forth
+                    const points = shapeData
+                        .sort((a, b) => parseInt(a.shape_pt_sequence) - parseInt(b.shape_pt_sequence))
+                        .map(p => [p.shape_pt_lat, p.shape_pt_lon]);
+
+                    L.polyline(points, { 
+                        color: route.bgColor, 
+                        weight: 5, 
+                        opacity: 0.6, 
+                        lineJoin: 'round', 
+                        lineCap: 'round',
+                        pane: 'linePane' 
+                    }).addTo(currentRouteLine);
+                }
+            });
+
+        } catch(e) { 
+            console.error("Path Drawing Error:", e); 
+        }
+    }
             const shapeIds = [...new Set(trips.map(t => t.shape_id))].filter(Boolean);
             const shapePromises = shapeIds.map(sid => 
                 fetch(PROXY + encodeURIComponent(`${URLS.shapes}?shape_id=${sid}`)).then(r => r.json())
