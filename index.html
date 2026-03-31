@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -26,6 +27,7 @@
         .card { background: white; padding: 15px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
         .status-header { font-weight: bold; font-size: 0.9em; color: var(--brand-secondary); background: var(--brand-primary); margin: -15px -15px 10px -15px; padding: 12px 15px; border-radius: 12px 12px 0 0; text-align: center; }
 
+        /* FIX: removed width:100% from input to prevent flex overflow */
         .search-container { position: relative; display: flex; gap: 8px; margin: 8px 0; }
         input[type="text"] { flex: 1; min-width: 0; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: var(--gent-font); outline: none; font-size: 16px; }
 
@@ -37,104 +39,38 @@
         button { padding: 10px 16px; background: var(--brand-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-family: var(--gent-font); font-weight: bold; white-space: nowrap; }
         .clear-btn { background: var(--brand-secondary); width: 100%; color: var(--brand-primary); border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 5px; }
 
+        /* Loading state */
         .loading-bar { height: 3px; background: var(--brand-secondary); border-radius: 0 0 3px 3px; margin: -10px -15px 10px -15px; opacity: 0; transition: opacity 0.2s; }
         .loading-bar.active { opacity: 1; animation: loadpulse 1s ease-in-out infinite; }
         @keyframes loadpulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
 
-        /* ── Vehicle icon: wrapper + arrow + ring + delay badge ── */
-        .vehicle-wrapper {
-            position: relative;
-            width: 44px; height: 44px;
-            display: flex; align-items: center; justify-content: center;
-        }
-
-        /* Heading arrow — only visible on selected-route vehicles */
-        .vehicle-arrow {
-            position: absolute;
-            top: 1px; left: 50%;
-            width: 0; height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-bottom: 9px solid var(--arrow-color, #002A3A);
-            transform-origin: center 18px; /* pivot at ring centre */
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s;
-        }
-        .vehicle-arrow.visible { opacity: 1; }
-
+        .vehicle-wrapper { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
         .vehicle-ring {
             width: 32px; height: 32px; box-sizing: border-box; background: white;
             border: 3px solid var(--route-color); border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; overflow: visible;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2); transform: translateZ(0);
-            position: relative;
         }
-        .vehicle-ring img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.05); border-radius: 50%; overflow: hidden; }
-
-        /* Delay badge sits on the bottom-right of the ring */
-        .delay-badge {
-            position: absolute;
-            bottom: -4px; right: -6px;
-            min-width: 15px; height: 15px;
-            border-radius: 8px;
-            font-size: 8px; font-weight: 900;
-            display: flex; align-items: center; justify-content: center;
-            padding: 0 3px;
-            border: 1.5px solid white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-            white-space: nowrap;
-        }
-        .delay-badge.visible   { opacity: 1; }
-        .delay-badge.on-time   { background: #27ae60; color: white; }
-        .delay-badge.late      { background: #e74c3c; color: white; }
-        .delay-badge.early     { background: #f39c12; color: white; }
+        .vehicle-ring img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.05); }
 
         .route-tooltip { background: transparent !important; border: none !important; box-shadow: 0 3px 10px rgba(0,0,0,0.3) !important; font-family: var(--gent-font) !important; padding: 0 !important; border-radius: 8px !important; }
         .tooltip-inner { display: flex; align-items: center; padding: 5px 10px; border-radius: 8px; }
         .tooltip-route { font-weight: 900; font-size: 13px; }
         .tooltip-occ { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.25); text-transform: uppercase; margin-left: 8px; }
 
-        .legend-card { position: absolute; bottom: 30px; right: 20px; z-index: 1000; background: white; padding: 12px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 145px; }
+        .legend-card { position: absolute; bottom: 30px; right: 20px; z-index: 1000; background: white; padding: 12px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 140px; }
         .filter-item { display: flex; align-items: center; gap: 10px; margin: 8px 0; cursor: pointer; font-size: 13px; font-weight: 600; user-select: none; }
         .filter-item.inactive { opacity: 0.25; }
         .filter-icon { width: 20px; height: 20px; object-fit: contain; }
-        .legend-divider { border: none; border-top: 1px solid #eee; margin: 10px 0; }
-        .legend-label { font-size: 10px; font-weight: 800; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-        .legend-delay-row { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; margin: 5px 0; }
-        .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-        .legend-dot.on-time { background: #27ae60; }
-        .legend-dot.late    { background: #e74c3c; }
-        .legend-dot.early   { background: #f39c12; }
 
         .footer-note { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: 10px; background: rgba(255,255,255,0.8); padding: 3px 12px; border-radius: 20px; border: 1px solid #eee; white-space: nowrap; }
-        .footer-note a { color: #777; text-decoration: none; }
+        .footer-note a { color: #777; text-decoration: none; pointer-events: auto; }
         .footer-note a:hover { color: var(--brand-primary); font-weight: bold; }
 
         .leaflet-vehiclesPane-pane { pointer-events: none !important; }
         .leaflet-marker-icon { pointer-events: auto !important; }
 
-        /* ── Stop departure board ── */
-        .dep-popup { min-width: 220px; max-width: 280px; font-family: var(--gent-font); }
-        .dep-popup-name { font-weight: 900; font-size: 13px; color: var(--brand-primary); margin-bottom: 4px; }
-        .dep-popup-zone { display: inline-block; margin-bottom: 8px; padding: 2px 8px; background: var(--brand-primary); color: var(--brand-secondary); border-radius: 4px; font-weight: bold; font-size: 10px; }
-        .dep-board { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .dep-board th { text-align: left; font-size: 10px; font-weight: 800; color: #999; text-transform: uppercase; letter-spacing: 0.4px; padding: 0 0 5px 0; border-bottom: 1px solid #eee; }
-        .dep-board td { padding: 5px 2px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
-        .dep-board tr:last-child td { border-bottom: none; }
-        .dep-route-pill { display: inline-block; padding: 2px 7px; border-radius: 4px; font-weight: 900; font-size: 11px; }
-        .dep-time { font-weight: 800; color: var(--brand-primary); }
-        .dep-mins { font-size: 10px; color: #888; display: block; }
-        .dep-mins.due      { color: #27ae60; font-weight: 800; }
-        .dep-mins.late-txt { color: #e74c3c; font-weight: 800; }
-        .dep-dest { font-size: 11px; color: #555; max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-        .dep-loading { text-align: center; padding: 12px 0; color: #999; font-size: 12px; }
-        .dep-none { text-align: center; padding: 10px 0; color: #aaa; font-size: 11px; }
-        .leaflet-popup-content { margin: 12px 14px !important; }
-        .leaflet-popup-content-wrapper { border-radius: 10px !important; }
+        .stop-popup-zone { display: inline-block; margin-top: 5px; padding: 2px 8px; background: var(--brand-primary); color: var(--brand-secondary); border-radius: 4px; font-weight: bold; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -142,10 +78,10 @@
 <div class="ui-container">
     <div class="card">
         <div class="status-header"><span id="id-count">0</span> Vehicles Live</div>
+        <!-- Loading indicator -->
         <div class="loading-bar" id="loading-bar"></div>
         <div class="search-container">
-            <input type="text" id="routeInput" placeholder="Route #" autocomplete="off"
-                oninput="handleAutocomplete()" onkeypress="if(event.key==='Enter') searchRoute()">
+            <input type="text" id="routeInput" placeholder="Route #" autocomplete="off" oninput="handleAutocomplete()" onkeypress="if(event.key === 'Enter') searchRoute()">
             <div id="suggestions"></div>
             <button onclick="searchRoute()">Go</button>
         </div>
@@ -158,20 +94,9 @@
 </div>
 
 <div class="legend-card">
-    <div class="filter-item" onclick="toggleFilter('bus', this)">
-        <img src="https://www.metlink.org.nz/assets/Icons/Bus.svg" class="filter-icon"> Bus
-    </div>
-    <div class="filter-item" onclick="toggleFilter('train', this)">
-        <img src="https://www.metlink.org.nz/assets/Icons/Train.svg" class="filter-icon"> Train
-    </div>
-    <div class="filter-item" onclick="toggleFilter('ferry', this)">
-        <img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" class="filter-icon"> Ferry
-    </div>
-    <hr class="legend-divider">
-    <div class="legend-label">Delay</div>
-    <div class="legend-delay-row"><div class="legend-dot on-time"></div> On time / early</div>
-    <div class="legend-delay-row"><div class="legend-dot early"></div> Slightly early</div>
-    <div class="legend-delay-row"><div class="legend-dot late"></div> Running late</div>
+    <div class="filter-item" onclick="toggleFilter('bus', this)"><img src="https://www.metlink.org.nz/assets/Icons/Bus.svg" class="filter-icon"> Bus</div>
+    <div class="filter-item" onclick="toggleFilter('train', this)"><img src="https://www.metlink.org.nz/assets/Icons/Train.svg" class="filter-icon"> Train</div>
+    <div class="filter-item" onclick="toggleFilter('ferry', this)"><img src="https://www.metlink.org.nz/assets/Icons/Ferry.svg" class="filter-icon"> Ferry</div>
 </div>
 
 <div class="footer-note">
@@ -185,487 +110,360 @@
 <script src="https://unpkg.com/gtfs-realtime-pbf-js-module@1.0.0/gtfs-realtime.browser.proto.js"></script>
 
 <script>
-// ─── Smooth marker sliding ────────────────────────────────────────────────────
-(function(){L.Marker.include({slideTo:function(e,i){var n=this;n._slideToUntil=performance.now()+(i.duration||1e3);n._slideToFromLatLng=n.getLatLng();n._slideToToLatLng=L.latLng(e);n._slideToDuration=i.duration||1e3;cancelAnimationFrame(n._slideToFrame);n._slideToFrame=requestAnimationFrame(function t(e){var i=performance.now(),r=(i-n._slideToUntil+n._slideToDuration)/n._slideToDuration;r=Math.min(r,1);n.setLatLng([n._slideToFromLatLng.lat+(n._slideToToLatLng.lat-n._slideToFromLatLng.lat)*r,n._slideToFromLatLng.lng+(n._slideToToLatLng.lng-n._slideToFromLatLng.lng)*r]);if(r<1)n._slideToFrame=requestAnimationFrame(t);else n.fire("moveend")});return n}})}).call(this);
+    // ─── Marker slide animation ───────────────────────────────────────────────
+    (function(){L.Marker.include({slideTo:function(e,i){var n=this;n._slideToUntil=performance.now()+(i.duration||1e3);n._slideToFromLatLng=n.getLatLng();n._slideToToLatLng=L.latLng(e);n._slideToDuration=i.duration||1e3;cancelAnimationFrame(n._slideToFrame);n._slideToFrame=requestAnimationFrame(function t(e){var i=performance.now(),r=(i-n._slideToUntil+n._slideToDuration)/n._slideToDuration;r=Math.min(r,1);n.setLatLng([n._slideToFromLatLng.lat+(n._slideToToLatLng.lat-n._slideToFromLatLng.lat)*r,n._slideToFromLatLng.lng+(n._slideToToLatLng.lng-n._slideToFromLatLng.lng)*r]);if(r<1)n._slideToFrame=requestAnimationFrame(t);else n.fire("moveend")});return n}})}).call(this);
 
-// ─── Config ───────────────────────────────────────────────────────────────────
-const PROXY = '/api/metlink?url=';
-const URLS = {
-    pos:         'https://api.opendata.metlink.org.nz/v1/gtfs-rt/vehiclepositions',
-    tripUpdates: 'https://api.opendata.metlink.org.nz/v1/gtfs-rt/tripupdates',
-    routes:      'https://api.opendata.metlink.org.nz/v1/gtfs/routes',
-    trips:       'https://api.opendata.metlink.org.nz/v1/gtfs/trips',
-    shapes:      'https://api.opendata.metlink.org.nz/v1/gtfs/shapes',
-    stops:       'https://api.opendata.metlink.org.nz/v1/gtfs/stops',
-    departures:  'https://api.opendata.metlink.org.nz/v1/stop-predictions'
-};
+    // ─── Config ───────────────────────────────────────────────────────────────
+    const PROXY = '/api/metlink?url=';
+    const URLS = {
+        pos:    'https://api.opendata.metlink.org.nz/v1/gtfs-rt/vehiclepositions',
+        routes: 'https://api.opendata.metlink.org.nz/v1/gtfs/routes',
+        trips:  'https://api.opendata.metlink.org.nz/v1/gtfs/trips',
+        shapes: 'https://api.opendata.metlink.org.nz/v1/gtfs/shapes',
+        stops:  'https://api.opendata.metlink.org.nz/v1/gtfs/stops'
+    };
 
-const TRAIN_ROUTES    = new Set(['HVL','KPL','JVL','MLN','WRL']);
-const FERRY_ROUTES    = new Set(['QDF','MIF','CCL','WHF','FER']);
-const OCC_MAP         = { 1:'Available', 2:'Standing', 3:'Full' };
-const LATE_THRESH_S   =  120;   // 2 min late
-const EARLY_THRESH_S  = -60;    // 1 min early
+    // FIX: Correct train route codes — MLN not MEL for Melling
+    const TRAIN_ROUTES = new Set(['HVL','KPL','JVL','MLN','WRL']);
+    const FERRY_ROUTES = new Set(['QDF','MIF','CCL','WHF','FER']);
 
-// ─── Map ──────────────────────────────────────────────────────────────────────
-const map = L.map('map', { zoomControl: false, preferCanvas: true, tap: false })
-    .setView([-41.2865, 174.7762], 13);
+    const OCC_MAP = { 1: "Available", 2: "Standing", 3: "Full" };
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-    subdomains: 'abcd', maxZoom: 19
-}).addTo(map);
+    // ─── Map setup ────────────────────────────────────────────────────────────
+    // FIX: Corrected tile URL — {r}.png not {r.png}
+    const map = L.map('map', { zoomControl: false, preferCanvas: true, tap: false })
+        .setView([-41.2865, 174.7762], 13);
 
-map.createPane('linePane').style.zIndex     = 400;
-map.createPane('stopsPane').style.zIndex    = 500;
-map.createPane('vehiclesPane').style.zIndex = 600;
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(map);
 
-// ─── State ────────────────────────────────────────────────────────────────────
-let markers = {}, routeDetails = {}, currentRouteLine = null;
-let stopMarkers = L.layerGroup().addTo(map);
-let currentlyHighlightedRoute = null, hiddenTypes = new Set();
-let loadingRequest = 0, autocompleteTimer = null;
-let tripDelays = {};   // trip_id → delay seconds
+    map.createPane('linePane').style.zIndex  = 400;
+    map.createPane('stopsPane').style.zIndex = 500;
+    map.createPane('vehiclesPane').style.zIndex = 600;
 
-// Caches
-const shapeCache = {}, stopsCache = {}, tripsCache = {};
+    // ─── State ────────────────────────────────────────────────────────────────
+    let markers               = {};
+    let routeDetails          = {};
+    let currentRouteLine      = null;
+    let stopMarkers           = L.layerGroup().addTo(map);
+    let currentlyHighlightedRoute = null;
+    let hiddenTypes           = new Set();
+    let loadingRequest        = 0;     // FIX: race-condition guard for loadRouteVisuals
 
-// ─── Listeners ────────────────────────────────────────────────────────────────
-map.on('click', () => { if (currentlyHighlightedRoute) clearSelection(); });
-document.addEventListener('click', e => {
-    if (!e.target.closest('.search-container'))
-        document.getElementById('suggestions').style.display = 'none';
-});
+    // FIX: Caches to avoid re-fetching the same data
+    const shapeCache = {};
+    const stopsCache = {};
+    const tripsCache = {};
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function setLoading(on) {
-    document.getElementById('loading-bar').classList.toggle('active', on);
-}
+    // ─── Autocomplete debounce ────────────────────────────────────────────────
+    let autocompleteTimer = null;
 
-function delayClass(secs) {
-    if (secs == null) return null;
-    if (secs >  LATE_THRESH_S)  return 'late';
-    if (secs <  EARLY_THRESH_S) return 'early';
-    return 'on-time';
-}
+    // ─── Map click — only clear if not clicking a stop/vehicle ───────────────
+    map.on('click', () => { if (currentlyHighlightedRoute) clearSelection(); });
 
-function delayLabel(secs) {
-    if (secs == null) return '';
-    const abs = Math.abs(Math.round(secs / 60));
-    if (secs >  LATE_THRESH_S)  return `+${abs}m`;
-    if (secs <  EARLY_THRESH_S) return `-${abs}m`;
-    return '✓';
-}
-
-// ─── Build vehicle icon HTML ──────────────────────────────────────────────────
-// The arrow element is always in the DOM; CSS opacity shows/hides it.
-// We rotate the arrow around the ring centre using transform-origin.
-function buildIconHtml(rd, bearing, delaySecs, isHighlighted) {
-    const iconUrl = rd.type === 'train' ? 'https://www.metlink.org.nz/assets/Icons/Train.svg'
-                  : rd.type === 'ferry' ? 'https://www.metlink.org.nz/assets/Icons/Ferry.svg'
-                  : 'https://www.metlink.org.nz/assets/Icons/Bus.svg';
-
-    const showArrow = isHighlighted && bearing != null;
-    // The CSS triangle points UP by default (north = 0°).
-    // We translate it to sit just above the ring, then rotate around ring centre.
-    const arrowTransform = showArrow
-        ? `translateX(-50%) rotate(${bearing}deg)`
-        : 'translateX(-50%)';
-    const arrowVisible = showArrow ? 'visible' : '';
-
-    const dc = delayClass(delaySecs);
-    const dl = delayLabel(delaySecs);
-    const badgeClass = dc ? `delay-badge ${dc} visible` : 'delay-badge';
-
-    return `
-        <div class="vehicle-arrow ${arrowVisible}"
-             style="transform:${arrowTransform}; --arrow-color:${rd.bgColor}"></div>
-        <div class="vehicle-ring" style="--route-color:${rd.bgColor}">
-            <img src="${iconUrl}" alt="${rd.type}">
-            <div class="${badgeClass}">${dl}</div>
-        </div>`;
-}
-
-// Rebuild a marker's icon without removing/re-adding it from the map
-function refreshMarkerIcon(marker) {
-    const { rd, bearing, delaySecs, routeShortName } = marker.options;
-    const isHighlighted = currentlyHighlightedRoute === routeShortName;
-    marker.setIcon(L.divIcon({
-        className: 'vehicle-wrapper',
-        html: buildIconHtml(rd, bearing, delaySecs, isHighlighted),
-        iconSize: [44, 44], iconAnchor: [22, 22]
-    }));
-}
-
-// ─── Search ───────────────────────────────────────────────────────────────────
-window.searchRoute = async function() {
-    const input = document.getElementById('routeInput');
-    const query = input.value.trim().toUpperCase();
-    if (!query) return;
-
-    input.blur();
-    input.value = '';
-    document.getElementById('suggestions').style.display = 'none';
-    currentlyHighlightedRoute = query;
-
-    const route = Object.values(routeDetails).find(r => r.short === query);
-    if (route) {
-        const info = document.getElementById('info-panel');
-        info.style.display = 'block';
-        info.style.borderLeftColor = route.bgColor;
-        document.getElementById('p-route').innerText = `Route ${route.short}`;
-        document.getElementById('p-desc').innerText  = route.long;
-
-        const bounds = [];
-        Object.values(markers).forEach(m => {
-            if (m.options.routeShortName === query) bounds.push(m.getLatLng());
-        });
-        if (bounds.length > 0)
-            map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50], maxZoom: 15 });
-
-        loadRouteVisuals(route);
-    }
-    refreshVisibility();
-};
-
-// ─── Load route shape + stops ─────────────────────────────────────────────────
-async function loadRouteVisuals(route) {
-    const myRequest = ++loadingRequest;
-    if (currentRouteLine) { map.removeLayer(currentRouteLine); currentRouteLine = null; }
-    stopMarkers.clearLayers();
-    setLoading(true);
-
-    try {
-        const [trips, stops] = await Promise.all([
-            tripsCache[route.id]
-                ? Promise.resolve(tripsCache[route.id])
-                : fetch(PROXY + encodeURIComponent(`${URLS.trips}?route_id=${route.id}`))
-                    .then(r => { if (!r.ok) throw new Error('trips'); return r.json(); })
-                    .then(d => (tripsCache[route.id] = d, d)),
-            stopsCache[route.id]
-                ? Promise.resolve(stopsCache[route.id])
-                : fetch(PROXY + encodeURIComponent(`${URLS.stops}?route_id=${route.id}`))
-                    .then(r => { if (!r.ok) throw new Error('stops'); return r.json(); })
-                    .then(d => (stopsCache[route.id] = d, d))
-        ]);
-
-        if (myRequest !== loadingRequest) return;
-
-        currentRouteLine = L.featureGroup().addTo(map);
-
-        // Render stops with departure-board popup on click
-        stops.forEach(stop => {
-            const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], {
-                radius: 12, stroke: false, fillOpacity: 0, pane: 'stopsPane'
-            }).addTo(stopMarkers);
-
-            L.circleMarker([stop.stop_lat, stop.stop_lon], {
-                radius: 5, fillColor: '#CDDC00', color: '#002A3A',
-                weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane'
-            }).addTo(stopMarkers);
-
-            hitbox.on('click', e => {
-                L.DomEvent.stopPropagation(e);
-                openDepartureBoard(hitbox, stop);
-            });
-        });
-
-        // Fetch + draw shapes (deduplicated, cached)
-        const shapeIds = [...new Set(trips.map(t => t.shape_id).filter(Boolean))];
-        const allShapeData = await Promise.all(shapeIds.map(sid => {
-            if (shapeCache[sid]) return Promise.resolve(shapeCache[sid]);
-            return fetch(PROXY + encodeURIComponent(`${URLS.shapes}?shape_id=${sid}`))
-                .then(r => { if (!r.ok) throw new Error('shape'); return r.json(); })
-                .then(d => (shapeCache[sid] = d, d));
-        }));
-
-        if (myRequest !== loadingRequest) return;
-
-        const drawn = new Set();
-        allShapeData.forEach((data, idx) => {
-            const sid = shapeIds[idx];
-            if (!data || data.length === 0 || drawn.has(sid)) return;
-            drawn.add(sid);
-            const pts = data
-                .sort((a, b) => +a.shape_pt_sequence - +b.shape_pt_sequence)
-                .map(p => [p.shape_pt_lat, p.shape_pt_lon]);
-            L.polyline(pts, { color: route.bgColor, weight: 6, opacity: 0.8, lineJoin: 'round', pane: 'linePane' })
-             .addTo(currentRouteLine);
-        });
-
-    } catch(e) {
-        console.error('loadRouteVisuals failed:', e);
-    } finally {
-        if (myRequest === loadingRequest) setLoading(false);
-    }
-}
-
-// ─── Stop departure board (popup) ─────────────────────────────────────────────
-async function openDepartureBoard(hitbox, stop) {
-    const zoneHtml = stop.zone_id
-        ? `<div class="dep-popup-zone">ZONE ${stop.zone_id}</div>` : '';
-
-    hitbox.bindPopup(
-        `<div class="dep-popup">
-            <div class="dep-popup-name">${stop.stop_name}</div>
-            ${zoneHtml}
-            <div class="dep-loading">Loading departures…</div>
-         </div>`,
-        { maxWidth: 300, closeOnClick: false }
-    ).openPopup();
-
-    try {
-        const res = await fetch(PROXY + encodeURIComponent(`${URLS.departures}/${stop.stop_id}`));
-        if (!res.ok) throw new Error('departures');
-        const data = await res.json();
-        const deps = (data.departures || []).slice(0, 8);
-        const now  = Date.now();
-
-        let rows = '';
-        if (deps.length === 0) {
-            rows = `<tr><td colspan="3" class="dep-none">No upcoming departures</td></tr>`;
-        } else {
-            deps.forEach(d => {
-                const rd      = Object.values(routeDetails).find(r => r.short === d.service_id) || {};
-                const bg      = rd.bgColor   || '#002A3A';
-                const fg      = rd.textColor || '#fff';
-                const aimed   = new Date(d.aimed_departure_time || d.aimed_arrival_time);
-                const timeStr = aimed.toLocaleTimeString('en-NZ', { hour: '2-digit', minute: '2-digit', hour12: false });
-                const mins    = Math.round((aimed - now) / 60000);
-
-                let minsHtml;
-                if (mins <= 0)      minsHtml = `<span class="dep-mins due">Due now</span>`;
-                else if (mins === 1) minsHtml = `<span class="dep-mins due">1 min</span>`;
-                else                minsHtml = `<span class="dep-mins">${mins} min</span>`;
-
-                // Late indicator (from trip updates data)
-                const delaySecs = d.delay ?? null;
-                const lateExtra = delaySecs != null && delaySecs > LATE_THRESH_S
-                    ? `<span class="dep-mins late-txt">+${Math.round(delaySecs/60)}m late</span>` : '';
-
-                const dest = d.destination?.name || d.trip_headsign || '—';
-
-                rows += `<tr>
-                    <td><span class="dep-route-pill" style="background:${bg};color:${fg}">${d.service_id}</span></td>
-                    <td><span class="dep-dest">${dest}</span></td>
-                    <td><span class="dep-time">${timeStr}</span>${minsHtml}${lateExtra}</td>
-                </tr>`;
-            });
-        }
-
-        const board = `
-            <div class="dep-popup">
-                <div class="dep-popup-name">${stop.stop_name}</div>
-                ${zoneHtml}
-                <table class="dep-board">
-                    <thead><tr><th>Route</th><th>To</th><th>Time</th></tr></thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            </div>`;
-
-        if (hitbox.isPopupOpen()) hitbox.setPopupContent(board);
-
-    } catch(e) {
-        console.error('Departure board failed:', e);
-        if (hitbox.isPopupOpen()) {
-            hitbox.setPopupContent(
-                `<div class="dep-popup">
-                    <div class="dep-popup-name">${stop.stop_name}</div>
-                    ${zoneHtml}
-                    <div class="dep-none">Could not load departures.</div>
-                 </div>`
-            );
-        }
-    }
-}
-
-// ─── Fetch trip updates → delay map ──────────────────────────────────────────
-async function fetchTripUpdates() {
-    try {
-        const res = await fetch(PROXY + encodeURIComponent(`${URLS.tripUpdates}?t=${Date.now()}`));
-        if (!res.ok) return;
-        const bytes = Uint8Array.from(atob(await res.text()), c => c.charCodeAt(0));
-        const feed  = FeedMessage.read(new Pbf(bytes));
-        const next  = {};
-        feed.entity.forEach(entity => {
-            const tu = entity.trip_update;
-            if (!tu?.trip) return;
-            const stu = tu.stop_time_update?.[0];
-            if (!stu) return;
-            const delay = stu.departure?.delay ?? stu.arrival?.delay;
-            if (delay != null) next[tu.trip.trip_id] = delay;
-        });
-        tripDelays = next;
-    } catch(e) {
-        // Non-critical — delays are supplementary
-    }
-}
-
-// ─── Fetch live vehicle positions ─────────────────────────────────────────────
-async function fetchPositions() {
-    try {
-        const response = await fetch(PROXY + encodeURIComponent(`${URLS.pos}?t=${Date.now()}`));
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const bytes = Uint8Array.from(atob(await response.text()), c => c.charCodeAt(0));
-        const feed  = FeedMessage.read(new Pbf(bytes));
-        const activeIds = new Set();
-
-        feed.entity.forEach(entity => {
-            const v = entity.vehicle;
-            if (!v) return;
-
-            const id        = String(v.vehicle.id);
-            activeIds.add(id);
-
-            const rd        = routeDetails[v.trip.route_id] || { short:'?', bgColor:'#002A3A', textColor:'#fff', type:'bus' };
-            const occText   = OCC_MAP[v.occupancy_status] || null;
-            const bearing   = v.position.bearing ?? null;
-            const delaySecs = tripDelays[v.trip.trip_id] ?? null;
-
-            if (markers[id]) {
-                markers[id].slideTo([v.position.latitude, v.position.longitude], { duration: 7500 });
-                // Update stored options then redraw icon
-                Object.assign(markers[id].options, { occText, bearing, delaySecs });
-                refreshMarkerIcon(markers[id]);
-            } else {
-                const isHighlighted = currentlyHighlightedRoute === rd.short;
-                markers[id] = L.marker([v.position.latitude, v.position.longitude], {
-                    icon: L.divIcon({
-                        className: 'vehicle-wrapper',
-                        html: buildIconHtml(rd, bearing, delaySecs, isHighlighted),
-                        iconSize: [44, 44], iconAnchor: [22, 22]
-                    }),
-                    pane: 'vehiclesPane',
-                    vehicleType: rd.type,
-                    routeShortName: rd.short,
-                    routeColors: { bg: rd.bgColor, text: rd.textColor },
-                    occText, bearing, delaySecs, rd
-                }).addTo(map);
-
-                markers[id].on('click', e => {
-                    L.DomEvent.stopPropagation(e);
-                    document.getElementById('routeInput').value = rd.short;
-                    searchRoute();
-                });
-            }
-            updateLabel(markers[id]);
-        });
-
-        // Remove stale vehicles
-        Object.keys(markers).forEach(mid => {
-            if (!activeIds.has(mid)) { map.removeLayer(markers[mid]); delete markers[mid]; }
-        });
-
-        refreshVisibility();
-        document.getElementById('id-count').innerText = activeIds.size;
-
-    } catch(e) {
-        console.error('fetchPositions failed:', e);
-    }
-}
-
-// ─── Tooltip label ────────────────────────────────────────────────────────────
-function updateLabel(marker) {
-    if (currentlyHighlightedRoute === marker.options.routeShortName) {
-        const occHtml = marker.options.occText
-            ? `<span class="tooltip-occ">${marker.options.occText}</span>` : '';
-        const content = `<div class="tooltip-inner" style="background:${marker.options.routeColors.bg};color:${marker.options.routeColors.text}"><span class="tooltip-route">${marker.options.routeShortName}</span>${occHtml}</div>`;
-        if (!marker.getTooltip())
-            marker.bindTooltip(content, { permanent: true, direction: 'top', className: 'route-tooltip', offset: [0, -28] }).openTooltip();
-        else if (marker.getTooltip().getContent() !== content)
-            marker.setTooltipContent(content);
-    } else if (marker.getTooltip()) {
-        marker.unbindTooltip();
-    }
-}
-
-// ─── Filter toggle ────────────────────────────────────────────────────────────
-window.toggleFilter = function(type, el) {
-    hiddenTypes.has(type) ? hiddenTypes.delete(type) : hiddenTypes.add(type);
-    el.classList.toggle('inactive');
-    refreshVisibility();
-};
-
-// ─── Autocomplete (debounced 150ms) ──────────────────────────────────────────
-window.handleAutocomplete = function() {
-    clearTimeout(autocompleteTimer);
-    autocompleteTimer = setTimeout(() => {
-        const val   = document.getElementById('routeInput').value.trim().toUpperCase();
-        const suggs = document.getElementById('suggestions');
-        if (!val) { suggs.style.display = 'none'; return; }
-        const matches = Object.values(routeDetails).filter(r => r.short.startsWith(val)).slice(0, 6);
-        if (matches.length) {
-            suggs.innerHTML = matches.map(m =>
-                `<div class="suggestion-item" onclick="selectSugg('${m.short}')">${m.short} — ${m.long}</div>`
-            ).join('');
-            suggs.style.display = 'block';
-        } else {
-            suggs.style.display = 'none';
-        }
-    }, 150);
-};
-
-window.selectSugg = s => {
-    document.getElementById('routeInput').value = s;
-    document.getElementById('suggestions').style.display = 'none';
-    searchRoute();
-};
-
-// ─── Visibility + icon refresh (arrows on/off on route select/clear) ──────────
-function refreshVisibility() {
-    Object.values(markers).forEach(m => {
-        const filtered = hiddenTypes.has(m.options.vehicleType) ||
-            (currentlyHighlightedRoute && m.options.routeShortName !== currentlyHighlightedRoute);
-
-        if (filtered) {
-            if (map.hasLayer(m)) map.removeLayer(m);
-        } else {
-            if (!map.hasLayer(m)) map.addLayer(m);
-            refreshMarkerIcon(m);   // Redraws arrow visibility on selection change
-            updateLabel(m);
+    // ─── Close suggestions when clicking outside ──────────────────────────────
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-container')) {
+            document.getElementById('suggestions').style.display = 'none';
         }
     });
-}
 
-// ─── Clear ────────────────────────────────────────────────────────────────────
-window.clearSelection = function() {
-    loadingRequest++;
-    if (currentRouteLine) { map.removeLayer(currentRouteLine); currentRouteLine = null; }
-    stopMarkers.clearLayers();
-    currentlyHighlightedRoute = null;
-    document.getElementById('routeInput').value = '';
-    document.getElementById('info-panel').style.display = 'none';
-    setLoading(false);
-    refreshVisibility();
-};
-
-// ─── Init ─────────────────────────────────────────────────────────────────────
-async function init() {
-    try {
-        const res = await fetch(PROXY + encodeURIComponent(URLS.routes));
-        if (!res.ok) throw new Error(`Routes HTTP ${res.status}`);
-        const data = await res.json();
-
-        data.forEach(r => {
-            const short = r.route_short_name;
-            const type  = TRAIN_ROUTES.has(short) ? 'train' : FERRY_ROUTES.has(short) ? 'ferry' : 'bus';
-            routeDetails[r.route_id] = {
-                id: r.route_id, short, long: r.route_long_name, type,
-                bgColor:   r.route_color      ? `#${r.route_color}`      : '#002A3A',
-                textColor: r.route_text_color  ? `#${r.route_text_color}` : '#fff'
-            };
-        });
-
-        await fetchTripUpdates();          // Prime delay data before first render
-        fetchPositions();
-        setInterval(fetchTripUpdates, 30000);
-        setInterval(fetchPositions,   8000);
-
-    } catch(e) {
-        console.error('init failed:', e);
+    // ─── Loading bar helper ───────────────────────────────────────────────────
+    function setLoading(on) {
+        document.getElementById('loading-bar').classList.toggle('active', on);
     }
-}
 
-init();
+    // ─── Search ───────────────────────────────────────────────────────────────
+    window.searchRoute = async function() {
+        const input = document.getElementById('routeInput');
+        const query = input.value.trim().toUpperCase();
+        if (!query) return;
+
+        input.blur();
+        input.value = '';
+        document.getElementById('suggestions').style.display = 'none';
+        currentlyHighlightedRoute = query;
+
+        const route = Object.values(routeDetails).find(r => r.short === query);
+        if (route) {
+            const info = document.getElementById('info-panel');
+            info.style.display = 'block';
+            info.style.borderLeftColor = route.bgColor;
+            document.getElementById('p-route').innerText = `Route ${route.short}`;
+            document.getElementById('p-desc').innerText = route.long;
+
+            const bounds = [];
+            Object.values(markers).forEach(m => {
+                if (m.options.routeShortName === query) bounds.push(m.getLatLng());
+            });
+            if (bounds.length > 0) {
+                map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50], maxZoom: 15 });
+            }
+
+            loadRouteVisuals(route);
+        }
+        refreshVisibility();
+    };
+
+    // ─── Load route line + stops ──────────────────────────────────────────────
+    async function loadRouteVisuals(route) {
+        // FIX: Increment request counter so stale async results are discarded
+        const myRequest = ++loadingRequest;
+
+        if (currentRouteLine) { map.removeLayer(currentRouteLine); currentRouteLine = null; }
+        stopMarkers.clearLayers();
+
+        setLoading(true);
+
+        try {
+            // FIX: Cache trips and stops per route
+            const [trips, stops] = await Promise.all([
+                tripsCache[route.id]
+                    ? Promise.resolve(tripsCache[route.id])
+                    : fetch(PROXY + encodeURIComponent(`${URLS.trips}?route_id=${route.id}`)).then(r => { if(!r.ok) throw new Error('trips'); return r.json(); }).then(d => { tripsCache[route.id] = d; return d; }),
+                stopsCache[route.id]
+                    ? Promise.resolve(stopsCache[route.id])
+                    : fetch(PROXY + encodeURIComponent(`${URLS.stops}?route_id=${route.id}`)).then(r => { if(!r.ok) throw new Error('stops'); return r.json(); }).then(d => { stopsCache[route.id] = d; return d; })
+            ]);
+
+            // FIX: Bail if a newer search has superseded this one
+            if (myRequest !== loadingRequest) return;
+
+            currentRouteLine = L.featureGroup().addTo(map);
+
+            stops.forEach(stop => {
+                const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], {
+                    radius: 12, stroke: false, fillOpacity: 0, pane: 'stopsPane'
+                }).addTo(stopMarkers);
+
+                L.circleMarker([stop.stop_lat, stop.stop_lon], {
+                    radius: 5, fillColor: '#CDDC00', color: '#002A3A',
+                    weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane'
+                }).addTo(stopMarkers);
+
+                // FIX: Stop propagation prevents map click from clearing selection
+                hitbox.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    const zone = stop.zone_id ? `<div class="stop-popup-zone">ZONE ${stop.zone_id}</div>` : '';
+                    hitbox.bindPopup(`<b>${stop.stop_name}</b><br>${zone}`, { closeOnClick: false }).openPopup();
+                });
+            });
+
+            // FIX: Deduplicate shape IDs before fetching
+            const shapeIds = [...new Set(trips.map(t => t.shape_id).filter(Boolean))];
+
+            const shapePromises = shapeIds.map(sid => {
+                if (shapeCache[sid]) return Promise.resolve(shapeCache[sid]);
+                return fetch(PROXY + encodeURIComponent(`${URLS.shapes}?shape_id=${sid}`))
+                    .then(r => { if(!r.ok) throw new Error('shape'); return r.json(); })
+                    .then(d => { shapeCache[sid] = d; return d; });
+            });
+
+            const allShapeData = await Promise.all(shapePromises);
+
+            // FIX: Bail again after the slower shape fetch
+            if (myRequest !== loadingRequest) return;
+
+            // FIX: Track drawn shapes to avoid rendering duplicate polylines
+            const drawnShapes = new Set();
+
+            allShapeData.forEach((shapeData, idx) => {
+                if (!shapeData || shapeData.length === 0) return;
+                const sid = shapeIds[idx];
+                if (drawnShapes.has(sid)) return;
+                drawnShapes.add(sid);
+
+                const points = shapeData
+                    .sort((a, b) => parseInt(a.shape_pt_sequence) - parseInt(b.shape_pt_sequence))
+                    .map(p => [p.shape_pt_lat, p.shape_pt_lon]);
+
+                L.polyline(points, {
+                    color: route.bgColor, weight: 6, opacity: 0.8,
+                    lineJoin: 'round', pane: 'linePane'
+                }).addTo(currentRouteLine);
+            });
+
+        } catch(e) {
+            console.error('loadRouteVisuals failed:', e);
+        } finally {
+            if (myRequest === loadingRequest) setLoading(false);
+        }
+    }
+
+    // ─── Fetch live vehicle positions ─────────────────────────────────────────
+    async function fetchPositions() {
+        try {
+            const response = await fetch(PROXY + encodeURIComponent(`${URLS.pos}?t=${Date.now()}`));
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const bytes = Uint8Array.from(atob(await response.text()), c => c.charCodeAt(0));
+            const feed  = FeedMessage.read(new Pbf(bytes));
+            const activeIds = new Set();
+
+            feed.entity.forEach(entity => {
+                const v = entity.vehicle;
+                if (!v) return;
+
+                const id  = String(v.vehicle.id);
+                activeIds.add(id);
+
+                const rd      = routeDetails[v.trip.route_id] || { short: '?', bgColor: '#002A3A', textColor: '#fff', type: 'bus' };
+                const occText = OCC_MAP[v.occupancy_status] || null;
+
+                if (markers[id]) {
+                    markers[id].slideTo([v.position.latitude, v.position.longitude], { duration: 7500 });
+                    markers[id].options.occText = occText;
+                } else {
+                    const iconUrl = rd.type === 'train' ? 'https://www.metlink.org.nz/assets/Icons/Train.svg'
+                                  : rd.type === 'ferry' ? 'https://www.metlink.org.nz/assets/Icons/Ferry.svg'
+                                  : 'https://www.metlink.org.nz/assets/Icons/Bus.svg';
+
+                    markers[id] = L.marker([v.position.latitude, v.position.longitude], {
+                        icon: L.divIcon({
+                            className: 'vehicle-wrapper',
+                            html: `<div class="vehicle-ring" style="--route-color:${rd.bgColor}"><img src="${iconUrl}" alt="${rd.type}"></div>`,
+                            iconSize: [32, 32], iconAnchor: [16, 16]
+                        }),
+                        pane: 'vehiclesPane',
+                        vehicleType: rd.type,
+                        routeShortName: rd.short,
+                        routeColors: { bg: rd.bgColor, text: rd.textColor },
+                        occText: occText
+                    }).addTo(map);
+
+                    markers[id].on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        document.getElementById('routeInput').value = rd.short;
+                        searchRoute();
+                    });
+                }
+                updateLabel(markers[id]);
+            });
+
+            // Remove vehicles that are no longer in the feed
+            Object.keys(markers).forEach(mid => {
+                if (!activeIds.has(mid)) { map.removeLayer(markers[mid]); delete markers[mid]; }
+            });
+
+            refreshVisibility();
+            document.getElementById('id-count').innerText = activeIds.size;
+
+        } catch(e) {
+            console.error('fetchPositions failed:', e);
+        }
+    }
+
+    // ─── Tooltip label per vehicle ────────────────────────────────────────────
+    function updateLabel(marker) {
+        if (currentlyHighlightedRoute === marker.options.routeShortName) {
+            const occHtml = marker.options.occText
+                ? `<span class="tooltip-occ">${marker.options.occText}</span>` : '';
+            const content = `<div class="tooltip-inner" style="background:${marker.options.routeColors.bg};color:${marker.options.routeColors.text}"><span class="tooltip-route">${marker.options.routeShortName}</span>${occHtml}</div>`;
+
+            if (!marker.getTooltip()) {
+                marker.bindTooltip(content, { permanent: true, direction: 'top', className: 'route-tooltip', offset: [0, -18] }).openTooltip();
+            } else if (marker.getTooltip().getContent() !== content) {
+                marker.setTooltipContent(content);
+            }
+        } else if (marker.getTooltip()) {
+            marker.unbindTooltip();
+        }
+    }
+
+    // ─── Filter toggle ────────────────────────────────────────────────────────
+    window.toggleFilter = function(type, el) {
+        hiddenTypes.has(type) ? hiddenTypes.delete(type) : hiddenTypes.add(type);
+        el.classList.toggle('inactive');
+        refreshVisibility();
+    };
+
+    // ─── Autocomplete (debounced) ─────────────────────────────────────────────
+    window.handleAutocomplete = function() {
+        clearTimeout(autocompleteTimer);
+        autocompleteTimer = setTimeout(() => {
+            const val   = document.getElementById('routeInput').value.trim().toUpperCase();
+            const suggs = document.getElementById('suggestions');
+            if (!val) { suggs.style.display = 'none'; return; }
+
+            const matches = Object.values(routeDetails)
+                .filter(r => r.short.startsWith(val))
+                .slice(0, 6);
+
+            if (matches.length > 0) {
+                suggs.innerHTML = matches.map(m =>
+                    `<div class="suggestion-item" onclick="selectSugg('${m.short}')">${m.short} — ${m.long}</div>`
+                ).join('');
+                suggs.style.display = 'block';
+            } else {
+                suggs.style.display = 'none';
+            }
+        }, 150); // 150ms debounce
+    };
+
+    window.selectSugg = (s) => {
+        document.getElementById('routeInput').value = s;
+        document.getElementById('suggestions').style.display = 'none';
+        searchRoute();
+    };
+
+    // ─── Visibility refresh ───────────────────────────────────────────────────
+    function refreshVisibility() {
+        Object.values(markers).forEach(m => {
+            const filtered = hiddenTypes.has(m.options.vehicleType) ||
+                (currentlyHighlightedRoute && m.options.routeShortName !== currentlyHighlightedRoute);
+
+            if (filtered) { if (map.hasLayer(m)) map.removeLayer(m); }
+            else          { if (!map.hasLayer(m)) map.addLayer(m); updateLabel(m); }
+        });
+    }
+
+    // ─── Clear all ────────────────────────────────────────────────────────────
+    window.clearSelection = function() {
+        loadingRequest++;                        // Invalidate any in-flight loadRouteVisuals
+        if (currentRouteLine) { map.removeLayer(currentRouteLine); currentRouteLine = null; }
+        stopMarkers.clearLayers();
+        currentlyHighlightedRoute = null;
+        document.getElementById('routeInput').value = '';
+        document.getElementById('info-panel').style.display = 'none';
+        setLoading(false);
+        refreshVisibility();
+    };
+
+    // ─── Init ─────────────────────────────────────────────────────────────────
+    async function init() {
+        try {
+            const res = await fetch(PROXY + encodeURIComponent(URLS.routes));
+            if (!res.ok) throw new Error(`Routes fetch failed: HTTP ${res.status}`);
+
+            const data = await res.json();
+            data.forEach(r => {
+                const short = r.route_short_name;
+                // FIX: MLN (Melling) instead of MEL
+                const type = TRAIN_ROUTES.has(short) ? 'train'
+                           : FERRY_ROUTES.has(short) ? 'ferry'
+                           : 'bus';
+                routeDetails[r.route_id] = {
+                    id:        r.route_id,
+                    short,
+                    long:      r.route_long_name,
+                    type,
+                    bgColor:   r.route_color       ? `#${r.route_color}`       : '#002A3A',
+                    textColor: r.route_text_color   ? `#${r.route_text_color}`  : '#fff'
+                };
+            });
+
+            fetchPositions();
+            setInterval(fetchPositions, 8000);
+
+        } catch(e) {
+            console.error('init failed:', e);
+        }
+    }
+
+    init();
 </script>
 </body>
 </html>
