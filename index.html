@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Metlink API</title>
+    <title>Metlink Live Map</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://c.webfontfree.com/c.js?f=Gentleman-Regular" type="text/javascript"></script>
-    
+
     <style>
         :root {
             --gent-font: 'Gentleman-Regular', sans-serif;
@@ -17,7 +17,7 @@
         #map { height: 100vh; width: 100%; background: #f0f0f0; }
 
         .ui-container { position: absolute; top: 20px; left: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; width: 300px; }
-        
+
         @media (max-width: 480px) {
             .ui-container { top: 10px; left: 10px; right: 10px; width: auto; }
             .legend-card { display: none !important; }
@@ -25,15 +25,23 @@
 
         .card { background: white; padding: 15px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
         .status-header { font-weight: bold; font-size: 0.9em; color: var(--brand-secondary); background: var(--brand-primary); margin: -15px -15px 10px -15px; padding: 12px 15px; border-radius: 12px 12px 0 0; text-align: center; }
-        
+
+        /* FIX: removed width:100% from input to prevent flex overflow */
         .search-container { position: relative; display: flex; gap: 8px; margin: 8px 0; }
-        input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: var(--gent-font); outline: none; font-size: 16px; width: 100%; }
-        
-        #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; z-index: 1001; display: none; border-radius: 0 0 6px 6px; }
+        input[type="text"] { flex: 1; min-width: 0; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: var(--gent-font); outline: none; font-size: 16px; }
+
+        #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; z-index: 1001; display: none; border-radius: 0 0 6px 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .suggestion-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 14px; }
-        
-        button { padding: 10px 16px; background: var(--brand-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-family: var(--gent-font); font-weight: bold; }
+        .suggestion-item:hover { background: #f5f5f5; }
+        .suggestion-item:last-child { border-bottom: none; }
+
+        button { padding: 10px 16px; background: var(--brand-primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-family: var(--gent-font); font-weight: bold; white-space: nowrap; }
         .clear-btn { background: var(--brand-secondary); width: 100%; color: var(--brand-primary); border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+
+        /* Loading state */
+        .loading-bar { height: 3px; background: var(--brand-secondary); border-radius: 0 0 3px 3px; margin: -10px -15px 10px -15px; opacity: 0; transition: opacity 0.2s; }
+        .loading-bar.active { opacity: 1; animation: loadpulse 1s ease-in-out infinite; }
+        @keyframes loadpulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
 
         .vehicle-wrapper { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
         .vehicle-ring {
@@ -50,19 +58,17 @@
         .tooltip-occ { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.25); text-transform: uppercase; margin-left: 8px; }
 
         .legend-card { position: absolute; bottom: 30px; right: 20px; z-index: 1000; background: white; padding: 12px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 140px; }
-        .filter-item { display: flex; align-items: center; gap: 10px; margin: 8px 0; cursor: pointer; font-size: 13px; font-weight: 600; }
+        .filter-item { display: flex; align-items: center; gap: 10px; margin: 8px 0; cursor: pointer; font-size: 13px; font-weight: 600; user-select: none; }
         .filter-item.inactive { opacity: 0.25; }
         .filter-icon { width: 20px; height: 20px; object-fit: contain; }
 
         .footer-note { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; font-size: 10px; background: rgba(255,255,255,0.8); padding: 3px 12px; border-radius: 20px; border: 1px solid #eee; white-space: nowrap; }
-        
-        /* Styled footer link */
         .footer-note a { color: #777; text-decoration: none; pointer-events: auto; }
         .footer-note a:hover { color: var(--brand-primary); font-weight: bold; }
 
         .leaflet-vehiclesPane-pane { pointer-events: none !important; }
         .leaflet-marker-icon { pointer-events: auto !important; }
-        
+
         .stop-popup-zone { display: inline-block; margin-top: 5px; padding: 2px 8px; background: var(--brand-primary); color: var(--brand-secondary); border-radius: 4px; font-weight: bold; font-size: 11px; }
     </style>
 </head>
@@ -71,6 +77,8 @@
 <div class="ui-container">
     <div class="card">
         <div class="status-header"><span id="id-count">0</span> Vehicles Live</div>
+        <!-- Loading indicator -->
+        <div class="loading-bar" id="loading-bar"></div>
         <div class="search-container">
             <input type="text" id="routeInput" placeholder="Route #" autocomplete="off" oninput="handleAutocomplete()" onkeypress="if(event.key === 'Enter') searchRoute()">
             <div id="suggestions"></div>
@@ -101,37 +109,81 @@
 <script src="https://unpkg.com/gtfs-realtime-pbf-js-module@1.0.0/gtfs-realtime.browser.proto.js"></script>
 
 <script>
-    (function(){var t=L.Marker.prototype.setLatLng;L.Marker.include({slideTo:function(e,i){var n=this;return n._slideToUntil=performance.now()+(i.duration||1e3),n._slideToFromLatLng=n.getLatLng(),n._slideToToLatLng=L.latLng(e),n._slideToDuration=i.duration||1e3,n._slideToFrame=requestAnimationFrame(function t(e){var i=performance.now(),r=(i-n._slideToUntil+n._slideToDuration)/n._slideToDuration;r>1&&(r=1),n.setLatLng([n._slideToFromLatLng.lat+(n._slideToToLatLng.lat-n._slideToFromLatLng.lat)*r,n._slideToFromLatLng.lng+(n._slideToToLatLng.lng-n._slideToFromLatLng.lng)*r]),r<1?n._slideToFrame=requestAnimationFrame(t):n.fire("moveend")}),n}})}).call(this);
+    // ─── Marker slide animation ───────────────────────────────────────────────
+    (function(){L.Marker.include({slideTo:function(e,i){var n=this;n._slideToUntil=performance.now()+(i.duration||1e3);n._slideToFromLatLng=n.getLatLng();n._slideToToLatLng=L.latLng(e);n._slideToDuration=i.duration||1e3;cancelAnimationFrame(n._slideToFrame);n._slideToFrame=requestAnimationFrame(function t(e){var i=performance.now(),r=(i-n._slideToUntil+n._slideToDuration)/n._slideToDuration;r=Math.min(r,1);n.setLatLng([n._slideToFromLatLng.lat+(n._slideToToLatLng.lat-n._slideToFromLatLng.lat)*r,n._slideToFromLatLng.lng+(n._slideToToLatLng.lng-n._slideToFromLatLng.lng)*r]);if(r<1)n._slideToFrame=requestAnimationFrame(t);else n.fire("moveend")});return n}})}).call(this);
 
-    const PROXY = '/api/metlink?url='; 
-    const URLS = { 
-        pos: 'https://api.opendata.metlink.org.nz/v1/gtfs-rt/vehiclepositions', 
-        routes: 'https://api.opendata.metlink.org.nz/v1/gtfs/routes', 
-        trips: 'https://api.opendata.metlink.org.nz/v1/gtfs/trips', 
-        shapes: 'https://api.opendata.metlink.org.nz/v1/gtfs/shapes', 
-        stops: 'https://api.opendata.metlink.org.nz/v1/gtfs/stops'
+    // ─── Config ───────────────────────────────────────────────────────────────
+    const PROXY = '/api/metlink?url=';
+    const URLS = {
+        pos:    'https://api.opendata.metlink.org.nz/v1/gtfs-rt/vehiclepositions',
+        routes: 'https://api.opendata.metlink.org.nz/v1/gtfs/routes',
+        trips:  'https://api.opendata.metlink.org.nz/v1/gtfs/trips',
+        shapes: 'https://api.opendata.metlink.org.nz/v1/gtfs/shapes',
+        stops:  'https://api.opendata.metlink.org.nz/v1/gtfs/stops'
     };
-    
-    const map = L.map('map', { zoomControl: false, preferCanvas: true, tap: false }).setView([-41.2865, 174.7762], 13);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r.png}').addTo(map);
 
-    map.createPane('linePane').style.zIndex = 400;
+    // FIX: Correct train route codes — MLN not MEL for Melling
+    const TRAIN_ROUTES = new Set(['HVL','KPL','JVL','MLN','WRL']);
+    const FERRY_ROUTES = new Set(['QDF','MIF','CCL','WHF','FER']);
+
+    const OCC_MAP = { 1: "Available", 2: "Standing", 3: "Full" };
+
+    // ─── Map setup ────────────────────────────────────────────────────────────
+    // FIX: Corrected tile URL — {r}.png not {r.png}
+    const map = L.map('map', { zoomControl: false, preferCanvas: true, tap: false })
+        .setView([-41.2865, 174.7762], 13);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(map);
+
+    map.createPane('linePane').style.zIndex  = 400;
     map.createPane('stopsPane').style.zIndex = 500;
     map.createPane('vehiclesPane').style.zIndex = 600;
 
-    let markers = {}, routeDetails = {}, currentRouteLine = null, stopMarkers = L.layerGroup().addTo(map);
-    let currentlyHighlightedRoute = null, hiddenTypes = new Set();
-    const OCC_MAP = { 1: "Available", 2: "Standing", 3: "Full" };
+    // ─── State ────────────────────────────────────────────────────────────────
+    let markers               = {};
+    let routeDetails          = {};
+    let currentRouteLine      = null;
+    let stopMarkers           = L.layerGroup().addTo(map);
+    let currentlyHighlightedRoute = null;
+    let hiddenTypes           = new Set();
+    let loadingRequest        = 0;     // FIX: race-condition guard for loadRouteVisuals
 
-    map.on('click', (e) => { if(currentlyHighlightedRoute) clearSelection(); });
+    // FIX: Caches to avoid re-fetching the same data
+    const shapeCache = {};
+    const stopsCache = {};
+    const tripsCache = {};
 
+    // ─── Autocomplete debounce ────────────────────────────────────────────────
+    let autocompleteTimer = null;
+
+    // ─── Map click — only clear if not clicking a stop/vehicle ───────────────
+    map.on('click', () => { if (currentlyHighlightedRoute) clearSelection(); });
+
+    // ─── Close suggestions when clicking outside ──────────────────────────────
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-container')) {
+            document.getElementById('suggestions').style.display = 'none';
+        }
+    });
+
+    // ─── Loading bar helper ───────────────────────────────────────────────────
+    function setLoading(on) {
+        document.getElementById('loading-bar').classList.toggle('active', on);
+    }
+
+    // ─── Search ───────────────────────────────────────────────────────────────
     window.searchRoute = async function() {
         const input = document.getElementById('routeInput');
         const query = input.value.trim().toUpperCase();
         if (!query) return;
-        
+
         input.blur();
-        input.value = "";
+        input.value = '';
+        document.getElementById('suggestions').style.display = 'none';
         currentlyHighlightedRoute = query;
 
         const route = Object.values(routeDetails).find(r => r.short === query);
@@ -146,154 +198,270 @@
             Object.values(markers).forEach(m => {
                 if (m.options.routeShortName === query) bounds.push(m.getLatLng());
             });
-            if (bounds.length > 0) map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50], maxZoom: 15 });
+            if (bounds.length > 0) {
+                map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50], maxZoom: 15 });
+            }
 
             loadRouteVisuals(route);
         }
         refreshVisibility();
     };
 
+    // ─── Load route line + stops ──────────────────────────────────────────────
     async function loadRouteVisuals(route) {
-        if (currentRouteLine) map.removeLayer(currentRouteLine);
+        // FIX: Increment request counter so stale async results are discarded
+        const myRequest = ++loadingRequest;
+
+        if (currentRouteLine) { map.removeLayer(currentRouteLine); currentRouteLine = null; }
         stopMarkers.clearLayers();
-        currentRouteLine = L.featureGroup().addTo(map);
+
+        setLoading(true);
 
         try {
+            // FIX: Cache trips and stops per route
             const [trips, stops] = await Promise.all([
-                fetch(PROXY + encodeURIComponent(`${URLS.trips}?route_id=${route.id}`)).then(r => r.json()),
-                fetch(PROXY + encodeURIComponent(`${URLS.stops}?route_id=${route.id}`)).then(r => r.json())
+                tripsCache[route.id]
+                    ? Promise.resolve(tripsCache[route.id])
+                    : fetch(PROXY + encodeURIComponent(`${URLS.trips}?route_id=${route.id}`)).then(r => { if(!r.ok) throw new Error('trips'); return r.json(); }).then(d => { tripsCache[route.id] = d; return d; }),
+                stopsCache[route.id]
+                    ? Promise.resolve(stopsCache[route.id])
+                    : fetch(PROXY + encodeURIComponent(`${URLS.stops}?route_id=${route.id}`)).then(r => { if(!r.ok) throw new Error('stops'); return r.json(); }).then(d => { stopsCache[route.id] = d; return d; })
             ]);
 
+            // FIX: Bail if a newer search has superseded this one
+            if (myRequest !== loadingRequest) return;
+
+            currentRouteLine = L.featureGroup().addTo(map);
+
             stops.forEach(stop => {
-                const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 12, stroke: false, fillOpacity: 0, pane: 'stopsPane' }).addTo(stopMarkers);
-                L.circleMarker([stop.stop_lat, stop.stop_lon], { radius: 5, fillColor: "#CDDC00", color: "#002A3A", weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane' }).addTo(stopMarkers);
-                
+                const hitbox = L.circleMarker([stop.stop_lat, stop.stop_lon], {
+                    radius: 12, stroke: false, fillOpacity: 0, pane: 'stopsPane'
+                }).addTo(stopMarkers);
+
+                L.circleMarker([stop.stop_lat, stop.stop_lon], {
+                    radius: 5, fillColor: '#CDDC00', color: '#002A3A',
+                    weight: 2, fillOpacity: 1, interactive: false, pane: 'stopsPane'
+                }).addTo(stopMarkers);
+
+                // FIX: Stop propagation prevents map click from clearing selection
                 hitbox.on('click', (e) => {
                     L.DomEvent.stopPropagation(e);
-                    const zone = stop.zone_id ? `<div class="stop-popup-zone">ZONE ${stop.zone_id}</div>` : "";
-                    hitbox.bindPopup(`<b>${stop.stop_name}</b><br>${zone}`).openPopup();
+                    const zone = stop.zone_id ? `<div class="stop-popup-zone">ZONE ${stop.zone_id}</div>` : '';
+                    hitbox.bindPopup(`<b>${stop.stop_name}</b><br>${zone}`, { closeOnClick: false }).openPopup();
                 });
             });
 
-            const shapeIds = [...new Set(trips.map(t => t.shape_id))].filter(Boolean);
-            const shapePromises = shapeIds.map(sid => 
-                fetch(PROXY + encodeURIComponent(`${URLS.shapes}?shape_id=${sid}`)).then(r => r.json())
-            );
+            // FIX: Deduplicate shape IDs before fetching
+            const shapeIds = [...new Set(trips.map(t => t.shape_id).filter(Boolean))];
+
+            const shapePromises = shapeIds.map(sid => {
+                if (shapeCache[sid]) return Promise.resolve(shapeCache[sid]);
+                return fetch(PROXY + encodeURIComponent(`${URLS.shapes}?shape_id=${sid}`))
+                    .then(r => { if(!r.ok) throw new Error('shape'); return r.json(); })
+                    .then(d => { shapeCache[sid] = d; return d; });
+            });
 
             const allShapeData = await Promise.all(shapePromises);
-            
-            allShapeData.forEach(shapeData => {
-                if (shapeData && shapeData.length > 0) {
-                    const points = shapeData
-                        .sort((a, b) => parseInt(a.shape_pt_sequence) - parseInt(b.shape_pt_sequence))
-                        .map(p => [p.shape_pt_lat, p.shape_pt_lon]);
-                    L.polyline(points, { color: route.bgColor, weight: 6, opacity: 0.8, lineJoin: 'round', pane: 'linePane' }).addTo(currentRouteLine);
-                }
+
+            // FIX: Bail again after the slower shape fetch
+            if (myRequest !== loadingRequest) return;
+
+            // FIX: Track drawn shapes to avoid rendering duplicate polylines
+            const drawnShapes = new Set();
+
+            allShapeData.forEach((shapeData, idx) => {
+                if (!shapeData || shapeData.length === 0) return;
+                const sid = shapeIds[idx];
+                if (drawnShapes.has(sid)) return;
+                drawnShapes.add(sid);
+
+                const points = shapeData
+                    .sort((a, b) => parseInt(a.shape_pt_sequence) - parseInt(b.shape_pt_sequence))
+                    .map(p => [p.shape_pt_lat, p.shape_pt_lon]);
+
+                L.polyline(points, {
+                    color: route.bgColor, weight: 6, opacity: 0.8,
+                    lineJoin: 'round', pane: 'linePane'
+                }).addTo(currentRouteLine);
             });
-        } catch(e) { console.error("Asset Load Failed", e); }
+
+        } catch(e) {
+            console.error('loadRouteVisuals failed:', e);
+        } finally {
+            if (myRequest === loadingRequest) setLoading(false);
+        }
     }
 
+    // ─── Fetch live vehicle positions ─────────────────────────────────────────
     async function fetchPositions() {
         try {
             const response = await fetch(PROXY + encodeURIComponent(`${URLS.pos}?t=${Date.now()}`));
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
             const bytes = Uint8Array.from(atob(await response.text()), c => c.charCodeAt(0));
-            const feed = FeedMessage.read(new Pbf(bytes));
+            const feed  = FeedMessage.read(new Pbf(bytes));
             const activeIds = new Set();
 
             feed.entity.forEach(entity => {
-                const v = entity.vehicle; if (!v) return;
-                const id = String(v.vehicle.id); activeIds.add(id);
-                const rd = routeDetails[v.trip.route_id] || { short: "?", bgColor: "#002A3A", textColor: "#fff", type: 'bus' };
-                const occText = OCC_MAP[v.occupancy_status];
+                const v = entity.vehicle;
+                if (!v) return;
+
+                const id  = String(v.vehicle.id);
+                activeIds.add(id);
+
+                const rd      = routeDetails[v.trip.route_id] || { short: '?', bgColor: '#002A3A', textColor: '#fff', type: 'bus' };
+                const occText = OCC_MAP[v.occupancy_status] || null;
 
                 if (markers[id]) {
                     markers[id].slideTo([v.position.latitude, v.position.longitude], { duration: 7500 });
                     markers[id].options.occText = occText;
                 } else {
-                    let iconUrl = 'https://www.metlink.org.nz/assets/Icons/Bus.svg';
-                    if (rd.type === 'train') iconUrl = 'https://www.metlink.org.nz/assets/Icons/Train.svg';
-                    if (rd.type === 'ferry') iconUrl = 'https://www.metlink.org.nz/assets/Icons/Ferry.svg';
+                    const iconUrl = rd.type === 'train' ? 'https://www.metlink.org.nz/assets/Icons/Train.svg'
+                                  : rd.type === 'ferry' ? 'https://www.metlink.org.nz/assets/Icons/Ferry.svg'
+                                  : 'https://www.metlink.org.nz/assets/Icons/Bus.svg';
 
                     markers[id] = L.marker([v.position.latitude, v.position.longitude], {
-                        icon: L.divIcon({ 
-                            className: 'vehicle-wrapper', 
-                            html: `<div class="vehicle-ring" style="--route-color: ${rd.bgColor}"><img src="${iconUrl}"></div>`, 
-                            iconSize: [32,32], iconAnchor: [16,16] 
+                        icon: L.divIcon({
+                            className: 'vehicle-wrapper',
+                            html: `<div class="vehicle-ring" style="--route-color:${rd.bgColor}"><img src="${iconUrl}" alt="${rd.type}"></div>`,
+                            iconSize: [32, 32], iconAnchor: [16, 16]
                         }),
-                        pane: 'vehiclesPane', vehicleType: rd.type, routeShortName: rd.short, routeColors: { bg: rd.bgColor, text: rd.textColor }, occText: occText
+                        pane: 'vehiclesPane',
+                        vehicleType: rd.type,
+                        routeShortName: rd.short,
+                        routeColors: { bg: rd.bgColor, text: rd.textColor },
+                        occText: occText
                     }).addTo(map);
 
-                    markers[id].on('click', (e) => { 
-                        L.DomEvent.stopPropagation(e); 
-                        document.getElementById('routeInput').value = rd.short; 
+                    markers[id].on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        document.getElementById('routeInput').value = rd.short;
                         searchRoute();
                     });
                 }
                 updateLabel(markers[id]);
             });
-            Object.keys(markers).forEach(mid => { if (!activeIds.has(mid)) { map.removeLayer(markers[mid]); delete markers[mid]; } });
+
+            // Remove vehicles that are no longer in the feed
+            Object.keys(markers).forEach(mid => {
+                if (!activeIds.has(mid)) { map.removeLayer(markers[mid]); delete markers[mid]; }
+            });
+
             refreshVisibility();
             document.getElementById('id-count').innerText = activeIds.size;
-        } catch(e) {}
+
+        } catch(e) {
+            console.error('fetchPositions failed:', e);
+        }
     }
 
+    // ─── Tooltip label per vehicle ────────────────────────────────────────────
     function updateLabel(marker) {
         if (currentlyHighlightedRoute === marker.options.routeShortName) {
-            const occHtml = marker.options.occText ? `<span class="tooltip-occ">${marker.options.occText}</span>` : "";
-            const content = `<div class="tooltip-inner" style="background:${marker.options.routeColors.bg}; color:${marker.options.routeColors.text}"><span class="tooltip-route">${marker.options.routeShortName}</span>${occHtml}</div>`;
-            if (!marker.getTooltip()) marker.bindTooltip(content, { permanent: true, direction: 'top', className: 'route-tooltip', offset: [0,-18] }).openTooltip();
-            else if (marker.getTooltip().getContent() !== content) marker.setTooltipContent(content);
-        } else if (marker.getTooltip()) marker.unbindTooltip();
+            const occHtml = marker.options.occText
+                ? `<span class="tooltip-occ">${marker.options.occText}</span>` : '';
+            const content = `<div class="tooltip-inner" style="background:${marker.options.routeColors.bg};color:${marker.options.routeColors.text}"><span class="tooltip-route">${marker.options.routeShortName}</span>${occHtml}</div>`;
+
+            if (!marker.getTooltip()) {
+                marker.bindTooltip(content, { permanent: true, direction: 'top', className: 'route-tooltip', offset: [0, -18] }).openTooltip();
+            } else if (marker.getTooltip().getContent() !== content) {
+                marker.setTooltipContent(content);
+            }
+        } else if (marker.getTooltip()) {
+            marker.unbindTooltip();
+        }
     }
 
+    // ─── Filter toggle ────────────────────────────────────────────────────────
     window.toggleFilter = function(type, el) {
         hiddenTypes.has(type) ? hiddenTypes.delete(type) : hiddenTypes.add(type);
-        el.classList.toggle('inactive'); refreshVisibility();
-    };
-
-    window.handleAutocomplete = function() {
-        const val = document.getElementById('routeInput').value.trim().toUpperCase();
-        const suggs = document.getElementById('suggestions');
-        if (!val) { suggs.style.display = 'none'; return; }
-        const matches = Object.values(routeDetails).filter(r => r.short.startsWith(val)).slice(0, 5);
-        if (matches.length > 0) {
-            suggs.innerHTML = matches.map(m => `<div class="suggestion-item" onclick="selectSugg('${m.short}')">${m.short} - ${m.long}</div>`).join('');
-            suggs.style.display = 'block';
-        } else { suggs.style.display = 'none'; }
-    };
-
-    window.selectSugg = (s) => { document.getElementById('routeInput').value = s; searchRoute(); document.getElementById('suggestions').style.display = 'none'; };
-
-    function refreshVisibility() {
-        Object.values(markers).forEach(m => {
-            const isFiltered = hiddenTypes.has(m.options.vehicleType) || (currentlyHighlightedRoute && m.options.routeShortName !== currentlyHighlightedRoute);
-            if (isFiltered) { if (map.hasLayer(m)) map.removeLayer(m); }
-            else { if (!map.hasLayer(m)) map.addLayer(m); updateLabel(m); }
-        });
-    }
-
-    window.clearSelection = function() {
-        if (currentRouteLine) map.removeLayer(currentRouteLine);
-        stopMarkers.clearLayers();
-        currentlyHighlightedRoute = null;
-        document.getElementById('routeInput').value = "";
-        document.getElementById('info-panel').style.display = 'none';
+        el.classList.toggle('inactive');
         refreshVisibility();
     };
 
-    async function init() { 
+    // ─── Autocomplete (debounced) ─────────────────────────────────────────────
+    window.handleAutocomplete = function() {
+        clearTimeout(autocompleteTimer);
+        autocompleteTimer = setTimeout(() => {
+            const val   = document.getElementById('routeInput').value.trim().toUpperCase();
+            const suggs = document.getElementById('suggestions');
+            if (!val) { suggs.style.display = 'none'; return; }
+
+            const matches = Object.values(routeDetails)
+                .filter(r => r.short.startsWith(val))
+                .slice(0, 6);
+
+            if (matches.length > 0) {
+                suggs.innerHTML = matches.map(m =>
+                    `<div class="suggestion-item" onclick="selectSugg('${m.short}')">${m.short} — ${m.long}</div>`
+                ).join('');
+                suggs.style.display = 'block';
+            } else {
+                suggs.style.display = 'none';
+            }
+        }, 150); // 150ms debounce
+    };
+
+    window.selectSugg = (s) => {
+        document.getElementById('routeInput').value = s;
+        document.getElementById('suggestions').style.display = 'none';
+        searchRoute();
+    };
+
+    // ─── Visibility refresh ───────────────────────────────────────────────────
+    function refreshVisibility() {
+        Object.values(markers).forEach(m => {
+            const filtered = hiddenTypes.has(m.options.vehicleType) ||
+                (currentlyHighlightedRoute && m.options.routeShortName !== currentlyHighlightedRoute);
+
+            if (filtered) { if (map.hasLayer(m)) map.removeLayer(m); }
+            else          { if (!map.hasLayer(m)) map.addLayer(m); updateLabel(m); }
+        });
+    }
+
+    // ─── Clear all ────────────────────────────────────────────────────────────
+    window.clearSelection = function() {
+        loadingRequest++;                        // Invalidate any in-flight loadRouteVisuals
+        if (currentRouteLine) { map.removeLayer(currentRouteLine); currentRouteLine = null; }
+        stopMarkers.clearLayers();
+        currentlyHighlightedRoute = null;
+        document.getElementById('routeInput').value = '';
+        document.getElementById('info-panel').style.display = 'none';
+        setLoading(false);
+        refreshVisibility();
+    };
+
+    // ─── Init ─────────────────────────────────────────────────────────────────
+    async function init() {
         try {
             const res = await fetch(PROXY + encodeURIComponent(URLS.routes));
+            if (!res.ok) throw new Error(`Routes fetch failed: HTTP ${res.status}`);
+
             const data = await res.json();
-            data.forEach(r => { 
-                let type = 'bus';
-                if (['HVL','KPL','JVL','MEL','WRL'].includes(r.route_short_name)) type = 'train';
-                if (['QDF', "MIF", "CCL", "WHF", "FER" ].includes(r.route_short_name)) type = 'ferry';
-                routeDetails[r.route_id] = { id: r.route_id, short: r.route_short_name, long: r.route_long_name, type, bgColor: r.route_color ? `#${r.route_color}` : '#002A3A', textColor: r.route_text_color ? `#${r.route_text_color}` : '#fff' }; 
+            data.forEach(r => {
+                const short = r.route_short_name;
+                // FIX: MLN (Melling) instead of MEL
+                const type = TRAIN_ROUTES.has(short) ? 'train'
+                           : FERRY_ROUTES.has(short) ? 'ferry'
+                           : 'bus';
+                routeDetails[r.route_id] = {
+                    id:        r.route_id,
+                    short,
+                    long:      r.route_long_name,
+                    type,
+                    bgColor:   r.route_color       ? `#${r.route_color}`       : '#002A3A',
+                    textColor: r.route_text_color   ? `#${r.route_text_color}`  : '#fff'
+                };
             });
-            fetchPositions(); setInterval(fetchPositions, 8000); 
-        } catch(e) {}
+
+            fetchPositions();
+            setInterval(fetchPositions, 8000);
+
+        } catch(e) {
+            console.error('init failed:', e);
+        }
     }
+
     init();
 </script>
 </body>
